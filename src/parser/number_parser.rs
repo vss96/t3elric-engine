@@ -23,16 +23,17 @@ impl Display for Number {
 }
 
 impl Parser<Number> for Number {
-    fn parse_from(val: &String) -> ParseResult<Number>  {
-        let digits = val.chars()
-        .take_while(|c| Digit::is_digit(c))
-        .collect::<String>();
+    fn parse_from(val: &String) -> ParseResult<Number> {
+        let digits = val
+            .chars()
+            .take_while(|c| Digit::is_digit(c))
+            .collect::<String>();
 
-    if digits.is_empty() {
-        return Err("No digits found".to_string());
-    }
+        if digits.is_empty() {
+            return Err("No digits found".to_string());
+        }
 
-    Number::try_from(&digits).map(|number| (number, val[digits.len()..].to_string()))
+        Number::try_from(&digits).map(|number| (number, val[digits.len()..].to_string()))
     }
 }
 
@@ -49,16 +50,17 @@ mod test_number_try_from {
     #[test]
     fn should_not_read_an_invalid_number_string() {
         let number_string = "1234-x".to_string();
-        assert_eq!(Err(String::from("- is not a digit")), Number::try_from(&number_string));
+        assert_eq!(
+            Err(String::from("- is not a digit")),
+            Number::try_from(&number_string)
+        );
     }
-
 
     #[test]
     fn should_read_a_valid_single_digit_string() {
         let number_string = "1".to_string();
         assert_eq!(Ok(Number(1)), Number::try_from(&number_string));
     }
-
 }
 
 #[cfg(test)]
@@ -68,14 +70,18 @@ mod test_number_parser {
     #[test]
     fn should_parse_number_from_string() {
         let number_string = "1234-x".to_string();
-        assert_eq!(Ok((Number(1234), "-x".to_string())), Number::parse_from(&number_string));
+        assert_eq!(
+            Ok((Number(1234), "-x".to_string())),
+            Number::parse_from(&number_string)
+        );
     }
 
     #[test]
     fn err_if_string_has_no_number() {
         let invalid_string = "xyz-".to_string();
-        assert_eq!(Err("No digits found".to_string()), Number::parse_from(&invalid_string));
+        assert_eq!(
+            Err("No digits found".to_string()),
+            Number::parse_from(&invalid_string)
+        );
     }
-
-
 }

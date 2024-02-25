@@ -1,8 +1,10 @@
 use std::{collections::HashMap, fmt::Display};
 
+use crate::generate_token_parser;
+
 use super::{ParseResult, Parser};
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Identify {
     engine_info: HashMap<String, String>,
 }
@@ -11,15 +13,7 @@ pub struct IdentifyParser;
 
 pub const IDENTIFY: &str = "identify";
 
-impl Parser<String> for IdentifyParser {
-    fn parse_from(val: &String) -> ParseResult<String> {
-        if val.starts_with(IDENTIFY) {
-            return Ok((IDENTIFY.to_string(), val[IDENTIFY.len()..].to_string()));
-        }
-
-        Err("Invalid Identify token".to_string())
-    }
-}
+generate_token_parser!(IDENTIFY, IdentifyParser);
 
 impl Identify {
     pub fn new() -> Self {
@@ -60,11 +54,10 @@ mod test_identify_token_parser {
         assert_eq!(Ok((IDENTIFY.to_string(), "".to_string())), res);
     }
 
-
     #[test]
     fn error_invalid_token() {
         let invalid_identify_string = "identifx".to_string();
         let res = IdentifyParser::parse_from(&invalid_identify_string);
-        assert_eq!(Err(String::from("Invalid Identify token")), res);
+        assert_eq!(Err(String::from("Could not find token: identify")), res);
     }
 }

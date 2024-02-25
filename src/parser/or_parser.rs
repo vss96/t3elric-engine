@@ -1,8 +1,7 @@
 use super::{ParseResult, Parser};
 use either::Either;
 
-pub struct OrParser<P1 , P2>(P1, P2);
-
+pub struct OrParser<P1, P2>(P1, P2);
 
 impl<P1, P2, U, V> Parser<Either<U, V>> for OrParser<P1, P2>
 where
@@ -16,11 +15,13 @@ where
     }
 }
 
-pub type TriOr<U, V, W> = OrParser<U, OrParser<V, W>>;
+pub type Or2<U, V> = OrParser<U, V>;
+pub type Or3<U, V, W> = Or2<U, Or2<V, W>>;
+pub type Or4<U, V, W, X> = Or2<U, Or3<V, W, X>>;
 
 #[cfg(test)]
 mod test_token_parser {
-    use crate::parser::{ParseResult, Parser, or_parser::Either};
+    use crate::parser::{or_parser::Either, ParseResult, Parser};
 
     use super::OrParser;
 
@@ -54,7 +55,10 @@ mod test_token_parser {
 
         let result = OrParser::<DummyParser1, DummyParser2>::parse_from(&input);
 
-        assert_eq!(result, Ok((Either::Left("dummy1".to_string()), " data".to_string())));
+        assert_eq!(
+            result,
+            Ok((Either::Left("dummy1".to_string()), " data".to_string()))
+        );
     }
 
     #[test]
@@ -64,5 +68,14 @@ mod test_token_parser {
         let result = OrParser::<DummyParser1, DummyParser2>::parse_from(&input);
 
         assert_eq!(result, Ok((Either::Right(2), "".to_string())));
+    }
+
+    #[test]
+    fn err_if_both_parsers_fail() {
+        let input = String::from("dummy3 data");
+
+        let result = OrParser::<DummyParser1, DummyParser2>::parse_from(&input);
+
+        assert_eq!(result, Err("Not a valid dummy2".to_string()));
     }
 }

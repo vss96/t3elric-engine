@@ -1,5 +1,4 @@
-use super::ParseResult; 
+use super::ParseResult;
 pub trait Parser<T> {
-
-    fn parse_from(val: &String) -> ParseResult<T> ;
+    fn parse_from(val: &String) -> ParseResult<T>;
 }
