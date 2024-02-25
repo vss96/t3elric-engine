@@ -1,10 +1,14 @@
-use std::{fmt::Display, iter::repeat, str::FromStr};
+use std::{borrow::BorrowMut, fmt::Display, iter::repeat, str::FromStr};
+
+use either::Either;
+
+use crate::generate_token_parser;
 
 use super::{
-    and_parser::{AndParser, TriAnd},
-    nothing_parser::NothingParser,
+    and_parser::{And2, And3},
+    nothing_parser::{Nothing, NothingParser},
     number_parser::Number,
-    or_parser::TriOr,
+    or_parser::Or3,
     time_parser::{TimeRemainingParser, TimeSetting, TotalTimeParser},
     whitespace_parser::WhiteSpaceParser,
     ParseResult, Parser,
@@ -19,12 +23,9 @@ pub struct BoardState {
 
 pub struct BestMove(u32, u32);
 
-impl BestMove {
-    pub fn format_move(&self) -> String {
+impl Display for BestMove {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut num = self.0;
-        if num == 0 {
-            return "a".to_string();
-        }
 
         let mut chars = Vec::new();
         while num > 0 {
@@ -36,35 +37,166 @@ impl BestMove {
 
         // Reverse the characters to get the correct order
         chars.reverse();
+        let column = if num == 0 {
+            "a".to_string()
+        } else {
+            chars.iter().collect::<String>()
+        };
 
-        format!("{}{}", chars.iter().collect::<String>(), self.1)
-    }
-}
-
-impl Display for BestMove {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "best {}", self.format_move())
+        write!(f, "best {}{}", column, self.1 + 1)
     }
 }
 
 impl BoardState {
-    pub fn best_move(&self) -> BestMove {
-        BestMove(0, 0)
+    pub fn best_move(&mut self) -> BestMove {
+        let (x, y) = self.find_best_move();
+        println!("{}, {}", x, y);
+        BestMove(x, y)
+    }
+    // Function to check if the board is full
+    fn is_full(&self) -> bool {
+        self.board.rows.iter().all(|row| {
+            row.iter().all(|cell| match cell {
+                Cell::Playable => false,
+                _ => true,
+            })
+        })
+    }
+
+    // Function to evaluate the board
+    fn evaluate(&self) -> i32 {
+        // Evaluation function will depend on the specific requirements
+        // This is a simple example that only checks if X wins (+1), O wins (-1), or it's a draw (0)
+        // You can expand this to include more complex evaluation criteria
+        let mut x_wins = false;
+        let mut o_wins = false;
+
+        // Check rows and columns
+        for i in 0..3 {
+            if self.board.rows[i][0] == self.board.rows[i][1]
+                && self.board.rows[i][1] == self.board.rows[i][2]
+            {
+                match self.board.rows[i][0] {
+                    Cell::Played(Player::X) => x_wins = true,
+                    Cell::Played(Player::O) => o_wins = true,
+                    _ => {}
+                }
+            }
+            if self.board.rows[0][i] == self.board.rows[1][i]
+                && self.board.rows[1][i] == self.board.rows[2][i]
+            {
+                match self.board.rows[0][i] {
+                    Cell::Played(Player::X) => x_wins = true,
+                    Cell::Played(Player::O) => o_wins = true,
+                    _ => {}
+                }
+            }
+        }
+
+        // Check diagonals
+        if self.board.rows[0][0] == self.board.rows[1][1]
+            && self.board.rows[1][1] == self.board.rows[2][2]
+        {
+            match self.board.rows[0][0] {
+                Cell::Played(Player::X) => x_wins = true,
+                Cell::Played(Player::O) => o_wins = true,
+                _ => {}
+            }
+        }
+        if self.board.rows[0][2] == self.board.rows[1][1]
+            && self.board.rows[1][1] == self.board.rows[2][0]
+        {
+            match self.board.rows[0][2] {
+                Cell::Played(Player::X) => x_wins = true,
+                Cell::Played(Player::O) => o_wins = true,
+                _ => {}
+            }
+        }
+
+        if x_wins {
+            return 1;
+        } else if o_wins {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+
+    fn alpha_beta_pruning(
+        &mut self,
+        depth: i32,
+        mut alpha: i32,
+        mut beta: i32,
+        is_maximizing: bool,
+    ) -> i32 {
+        if depth == 0 || self.is_full() {
+            return self.evaluate();
+        }
+
+        let mut value;
+        if is_maximizing {
+            value = std::i32::MIN;
+            for i in 0..3 {
+                for j in 0..3 {
+                    if let Cell::Playable = self.board.rows[i][j] {
+                        self.board.rows[i][j] = Cell::Played(self.player_to_move.clone());
+                        value = value.max(self.alpha_beta_pruning(depth - 1, alpha, beta, false));
+                        self.board.rows[i][j] = Cell::Playable;
+                        alpha = alpha.max(value);
+                        if alpha >= beta {
+                            return value;
+                        }
+                    }
+                }
+            }
+        } else {
+            value = std::i32::MAX;
+            for i in 0..3 {
+                for j in 0..3 {
+                    if let Cell::Playable = self.board.rows[i][j] {
+                        let opponent = match self.player_to_move {
+                            Player::X => Player::O,
+                            Player::O => Player::X,
+                        };
+                        self.board.rows[i][j] = Cell::Played(opponent);
+                        value = value.min(self.alpha_beta_pruning(depth - 1, alpha, beta, true));
+                        self.board.rows[i][j] = Cell::Playable;
+                        beta = beta.min(value);
+                        if alpha >= beta {
+                            return value;
+                        }
+                    }
+                }
+            }
+        }
+        value
+    }
+
+    fn find_best_move(&mut self) -> (u32, u32) {
+        let mut best_move: (u32, u32) = (0, 0);
+        let mut best_value = std::i32::MIN;
+
+        for i in 0..3 {
+            for j in 0..3 {
+                if let Cell::Playable = &self.board.rows[i][j] {
+                    self.board.rows[i][j] = Cell::Played(self.player_to_move.clone());
+                    let value = self.alpha_beta_pruning(9, std::i32::MIN, std::i32::MAX, false);
+                    self.board.rows[i][j] = Cell::Playable;
+                    if value > best_value {
+                        best_value = value;
+                        best_move = (i as u32, j as u32);
+                    }
+                }
+            }
+        }
+        best_move
     }
 }
 
 pub struct MoveTokenParser;
 pub const MOVE: &str = "move";
 
-impl Parser<String> for MoveTokenParser {
-    fn parse_from(val: &String) -> ParseResult<String> {
-        if val.starts_with(MOVE) {
-            return Ok((MOVE.to_string(), val[MOVE.len()..].to_string()));
-        }
-
-        Err("Invalid move type".to_string())
-    }
-}
+generate_token_parser!(MOVE, MoveTokenParser);
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cell {
@@ -104,7 +236,7 @@ impl Parser<Player> for PlayerParser {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Board {
-    rows: Vec<Vec<Cell>>,
+    pub rows: Vec<Vec<Cell>>,
 }
 
 impl FromStr for Cell {
@@ -174,9 +306,9 @@ impl FromStr for Board {
     }
 }
 
-pub struct T3nParser;
+pub struct BoardParser;
 
-impl Parser<Board> for T3nParser {
+impl Parser<Board> for BoardParser {
     fn parse_from(val: &String) -> ParseResult<Board> {
         if let Some((board_string, rest)) = val.split_once(' ') {
             return Ok((Board::from_str(board_string)?, rest.to_string()));
@@ -184,24 +316,60 @@ impl Parser<Board> for T3nParser {
         Err("Invalid T3N notation".to_string())
     }
 }
+pub type T3NParser = And2<BoardParser, PlayerParser>;
 
-pub type BasicMoveParser =
-    AndParser<TriAnd<MoveTokenParser, WhiteSpaceParser, T3nParser>, PlayerParser>;
+pub type BasicMoveParser = And3<MoveTokenParser, WhiteSpaceParser, T3NParser>;
 
-pub type MoveWithInfiniteTimeParser = AndParser<BasicMoveParser, NothingParser>;
-pub type MoveWithTotalTime = TriAnd<BasicMoveParser, WhiteSpaceParser, TotalTimeParser>;
-pub type MoveWithTimeRemaining = TriAnd<BasicMoveParser, WhiteSpaceParser, TimeRemainingParser>;
+pub type MoveWithInfiniteTimeParser = And2<BasicMoveParser, NothingParser>;
+pub type MoveWithTotalTime = And3<BasicMoveParser, WhiteSpaceParser, TotalTimeParser>;
+pub type MoveWithTimeRemaining = And3<BasicMoveParser, WhiteSpaceParser, TimeRemainingParser>;
 
-pub type MoveParser = TriOr<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTimeParser>;
+pub type MoveParser = Or3<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTimeParser>;
+pub type MoveParserReturnType = Either<
+    (
+        (String, (String, (Board, Player))),
+        (String, (String, (String, Number))),
+    ),
+    Either<
+        (
+            (String, (String, (Board, Player))),
+            (String, (String, (String, Number))),
+        ),
+        ((String, (String, (Board, Player))), Nothing),
+    >,
+>;
+
+pub fn map_to_move(parser_output: MoveParserReturnType) -> BoardState {
+    match parser_output {
+        Either::Left(((_, (_, (board, player))), (_, (_, (_, time))))) => BoardState {
+            player_to_move: player,
+            board,
+            time_setting: TimeSetting::TotalTime(time),
+        },
+        Either::Right(Either::Left(((_, (_, (board, player))), (_, (_, (_, time)))))) => {
+            BoardState {
+                player_to_move: player,
+                board,
+                time_setting: TimeSetting::TimeRemaining(time),
+            }
+        }
+
+        Either::Right(Either::Right(((_, (_, (board, player))), _))) => BoardState {
+            player_to_move: player,
+            board,
+            time_setting: TimeSetting::Infinite,
+        },
+    }
+}
 
 #[cfg(test)]
 mod test_t3nparser {
 
     use crate::parser::{
         move_parser::{
-            Board,
+            Board, BoardParser,
             Cell::{NonPlayable, Playable, Played},
-            Player, T3nParser,
+            Player,
         },
         Parser,
     };
@@ -211,7 +379,7 @@ mod test_t3nparser {
     #[test]
     fn parse_t3n_board() {
         let board_string = String::from("3_.x/4_o/5. x time-remaining ms:1500ms");
-        let board = T3nParser::parse_from(&board_string);
+        let board = BoardParser::parse_from(&board_string);
 
         assert_eq!(
             Ok((
@@ -265,22 +433,22 @@ mod test_move_parser {
             res,
             Ok((
                 Right(Right((
-                    (
+                    ((
+                        String::from("move"),
                         (
-                            String::from("move"),
+                            String::from(" "),
                             (
-                                String::from(" "),
                                 Board {
                                     rows: vec![
                                         vec![Playable, Playable, Playable],
                                         vec![Playable, Played(Player::X), Playable],
                                         vec![Playable, Playable, Playable]
                                     ]
-                                }
+                                },
+                                Player::O
                             )
-                        ),
-                        Player::O
-                    ),
+                        )
+                    )),
                     Nothing
                 ))),
                 String::from("")
@@ -298,22 +466,22 @@ mod test_move_parser {
             res,
             Ok((
                 Left((
-                    (
+                    ((
+                        String::from("move"),
                         (
-                            String::from("move"),
+                            " ".to_string(),
                             (
-                                " ".to_string(),
                                 Board {
                                     rows: vec![
                                         vec![Playable, Playable, Playable],
                                         vec![Playable, Playable, Playable],
                                         vec![Playable, Playable, Playable]
                                     ]
-                                }
+                                },
+                                Player::X
                             )
-                        ),
-                        Player::X
-                    ),
+                        )
+                    )),
                     (
                         " ".to_string(),
                         ("time".to_string(), (" ".to_string(), Number(1000)))
@@ -334,22 +502,22 @@ mod test_move_parser {
             res,
             Ok((
                 Right(Left((
-                    (
+                    ((
+                        String::from("move"),
                         (
-                            String::from("move"),
+                            " ".to_string(),
                             (
-                                " ".to_string(),
                                 Board {
                                     rows: vec![
                                         vec![Playable, Playable, Playable],
                                         vec![Playable, Playable, Playable],
                                         vec![Playable, Playable, Playable]
                                     ]
-                                }
+                                },
+                                Player::X
                             )
-                        ),
-                        Player::X
-                    ),
+                        )
+                    )),
                     (
                         " ".to_string(),
                         (

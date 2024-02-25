@@ -1,31 +1,24 @@
-
-use super::{ParseResult, Parser};
-pub struct WhiteSpaceParser;
-
+use crate::generate_token_parser;
+use crate::parser::parse_result::ParseResult;
+use crate::parser::Parser;
 
 const WHITESPACE: &str = " ";
+pub struct WhiteSpaceParser;
+generate_token_parser!(WHITESPACE, WhiteSpaceParser);
 
-impl Parser<String> for WhiteSpaceParser {
-    fn parse_from(val: &String) -> ParseResult<String>  {
-        if val.starts_with(WHITESPACE) {
-            return Ok((WHITESPACE.to_string(), val[WHITESPACE.len()..].to_string()));
-        }
-
-        return Err("Could not find whitespace.".to_string())
-    }
-}
-
+#[cfg(test)]
 mod whitespace_parser_test {
-    use crate::parser::{whitespace_parser::{WhiteSpaceParser, WHITESPACE}, Parser};
+    use crate::parser::{
+        whitespace_parser::{WhiteSpaceParser, WHITESPACE},
+        Parser,
+    };
 
-
-
-    
-
-#[test]
-fn should_parse_string_starting_with_whitespace() {
-    let val = " 234".to_string();
-    assert_eq!(Ok((WHITESPACE.to_string(), "234".to_string())), WhiteSpaceParser::parse_from(&val));
-}
-
+    #[test]
+    fn should_parse_string_starting_with_whitespace() {
+        let val = " 234".to_string();
+        assert_eq!(
+            Ok((WHITESPACE.to_string(), "234".to_string())),
+            WhiteSpaceParser::parse_from(&val)
+        );
+    }
 }

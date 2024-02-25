@@ -1,21 +1,18 @@
-use super::{and_parser:: TriAnd, number_parser::Number, ParseResult, Parser, whitespace_parser::WhiteSpaceParser};
+use crate::generate_token_parser;
 
+use super::{
+    and_parser::And3, number_parser::Number, token_parser, whitespace_parser::WhiteSpaceParser,
+    ParseResult, Parser,
+};
+
+#[derive(PartialEq, Eq, Debug)]
 pub struct Version(pub Number);
 const VERSION: &str = "version";
 
 pub struct VersionNumberParser;
-
 pub struct VersionTokenParser;
 
-impl Parser<String> for VersionTokenParser {
-    fn parse_from(val: &String) -> ParseResult<String> {
-        if val.starts_with(VERSION) {
-            return Ok((VERSION.to_string(), val[VERSION.len()..].to_string()));
-        }
-
-        Err("Invalid version type".to_string())
-    }
-}
+generate_token_parser!(VERSION, VersionTokenParser);
 
 impl Parser<Number> for VersionNumberParser {
     fn parse_from(val: &String) -> ParseResult<Number> {
@@ -23,7 +20,7 @@ impl Parser<Number> for VersionNumberParser {
     }
 }
 
-pub type VersionParser = TriAnd<VersionTokenParser, WhiteSpaceParser, VersionNumberParser>;
+pub type VersionParser = And3<VersionTokenParser, WhiteSpaceParser, VersionNumberParser>;
 
 #[cfg(test)]
 mod test_version_token_parser {
@@ -42,7 +39,7 @@ mod test_version_token_parser {
     fn error_invalid_token() {
         let invalid_version_string = "v 1.1.1".to_string();
         let res = VersionTokenParser::parse_from(&invalid_version_string);
-        assert_eq!(Err(String::from("Invalid version type")), res);
+        assert_eq!(Err(String::from("Could not find token: version")), res);
     }
 }
 
@@ -77,7 +74,10 @@ mod test_version_parser {
         let version_string = "version 2".to_string();
         let res = VersionParser::parse_from(&version_string);
         assert_eq!(
-            Ok(((VERSION.to_string(), (" ".to_string(), Number(2))), "".to_string())),
+            Ok((
+                (VERSION.to_string(), (" ".to_string(), Number(2))),
+                "".to_string()
+            )),
             res
         );
     }
