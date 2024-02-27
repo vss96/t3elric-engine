@@ -1,19 +1,20 @@
 use either::Either;
 
+use crate::solver::{GreedySolver, Solver};
+
 use super::{
-    identify_parser::{Identify, IdentifyParser},
+    identify_parser::{IdentifyParser, Identity},
     move_parser::{map_to_move, BoardState, MoveParser, MoveParserReturnType},
     or_parser::Or4,
     quit_parser::{Quit, QuitParser},
     step_parser::{Step, StepParser, StepParserReturnType},
-    time_parser::TimeSetting,
     version_parser::Version,
 };
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum Command {
     Step(Step),
-    Identify(Identify),
+    Identify(Identity),
     Move(BoardState),
     Quit(Quit),
 }
@@ -29,7 +30,7 @@ pub fn map_to_command(parser_output: ComandParserReturnType) -> Command {
 
             Command::Step(Step(Version(version)))
         }
-        Either::Right(Either::Left(_)) => Command::Identify(Identify::new()),
+        Either::Right(Either::Left(_)) => Command::Identify(Identity::new()),
         Either::Right(Either::Right(Either::Left(output))) => Command::Move(map_to_move(output)),
         Either::Right(Either::Right(Either::Right(_))) => Command::Quit(Quit {}),
     };
@@ -41,11 +42,12 @@ impl Command {
             Command::Step(step) => {
                 println!("{}", step);
             }
-            Command::Identify(identify) => {
-                println!("{}", identify);
+            Command::Identify(identity) => {
+                println!("{}", identity);
             }
             Command::Move(board_state) => {
-                // println!("{}", board_state.best_move());
+                let greedy_move = GreedySolver::solve(board_state);
+                println!("{}", greedy_move.unwrap());
             }
             Command::Quit(quit) => {
                 quit.exit_engine();
@@ -78,17 +80,15 @@ mod test_command {
         let command = CommandParser::parse_from(val).map(|(res, _)| map_to_command(res));
         assert_eq!(
             command,
-            Ok(Command::Move(BoardState {
-                player_to_move: Player::O,
-                board: Board {
-                    rows: vec![
-                        vec![Playable, Playable, Playable],
-                        vec![Playable, Played(Player::X), Playable],
-                        vec![Playable, Playable, Playable]
-                    ]
-                },
-                time_setting: TimeSetting::Infinite
-            }))
+            Ok(Command::Move(BoardState::new(
+                Player::O,
+                Board::new(vec![
+                    vec![Playable, Playable, Playable],
+                    vec![Playable, Played(Player::X), Playable],
+                    vec![Playable, Playable, Playable]
+                ]),
+                TimeSetting::Infinite
+            )))
         );
     }
 }
