@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use super::{Digit, ParseResult, Parser};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Number(pub u32);
 
 impl TryFrom<&String> for Number {

@@ -16,6 +16,14 @@ mod token_parser;
 mod version_parser;
 mod whitespace_parser;
 
+pub use command_parser::{map_to_command, CommandParser};
 pub use digit_parser::Digit;
+pub use move_parser::BestMove;
+pub use move_parser::Board;
+pub use move_parser::BoardState;
+pub use move_parser::Cell;
+pub use move_parser::Player;
 pub use parse_result::ParseResult;
 pub use parser::Parser;
+pub use step_parser::StepParser;
+pub use time_parser::TimeSetting;

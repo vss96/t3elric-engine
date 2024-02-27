@@ -1,8 +1,8 @@
 use crate::generate_token_parser;
 
 use super::{
-    and_parser::And3, number_parser::Number, token_parser, whitespace_parser::WhiteSpaceParser,
-    ParseResult, Parser,
+    and_parser::And3, number_parser::Number, whitespace_parser::WhiteSpaceParser, ParseResult,
+    Parser,
 };
 
 #[derive(PartialEq, Eq, Debug)]

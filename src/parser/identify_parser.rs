@@ -5,7 +5,7 @@ use crate::generate_token_parser;
 use super::{ParseResult, Parser};
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct Identify {
+pub struct Identity {
     engine_info: HashMap<String, String>,
 }
 
@@ -15,7 +15,7 @@ pub const IDENTIFY: &str = "identify";
 
 generate_token_parser!(IDENTIFY, IdentifyParser);
 
-impl Identify {
+impl Identity {
     pub fn new() -> Self {
         let mut engine_info = HashMap::new();
         engine_info.insert("name".to_string(), "t3elric-engine".to_string());
@@ -26,11 +26,11 @@ impl Identify {
             "https://github.com/vss96/t3elric-engine".to_string(),
         );
 
-        Identify { engine_info }
+        Identity { engine_info }
     }
 }
 
-impl Display for Identify {
+impl Display for Identity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (key, value) in &self.engine_info {
             write!(f, "identify {} {}\n", key, value)?;

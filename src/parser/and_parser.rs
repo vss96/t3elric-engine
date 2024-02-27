@@ -16,5 +16,3 @@ where
 
 pub type And2<U, V> = AndParser<U, V>;
 pub type And3<U, V, W> = And2<U, And2<V, W>>;
-pub type And4<U, V, W, X> = And2<U, And3<V, W, X>>;
-pub type And5<U, V, W, X, Y> = And2<U, And4<V, W, X, Y>>;

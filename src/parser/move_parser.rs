@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, fmt::Display, iter::repeat, str::FromStr};
+use std::{fmt::Display, iter::repeat, str::FromStr};
 
 use either::Either;
 
@@ -14,20 +14,27 @@ use super::{
     ParseResult, Parser,
 };
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BoardState {
     pub player_to_move: Player,
     pub board: Board,
     pub time_setting: TimeSetting,
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub struct BestMove(u32, u32);
 
-impl Display for BestMove {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut num = self.0;
+impl BestMove {
+    pub fn new(x: u32, y: u32) -> Self {
+        Self(x, y)
+    }
 
+    pub fn get_column_notation(&self) -> String {
+        let mut num = self.1;
         let mut chars = Vec::new();
+        if num == 0 {
+            return "a".to_string();
+        }
         while num > 0 {
             let remainder = num % 26;
             let ch = (b'a' + remainder as u8) as char;
@@ -37,159 +44,32 @@ impl Display for BestMove {
 
         // Reverse the characters to get the correct order
         chars.reverse();
-        let column = if num == 0 {
-            "a".to_string()
-        } else {
-            chars.iter().collect::<String>()
-        };
+        chars.iter().collect::<String>()
+    }
 
-        write!(f, "best {}{}", column, self.1 + 1)
+    pub fn get_row_notation(&self) -> u32 {
+        self.0 + 1
+    }
+}
+
+impl Display for BestMove {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "best {}{}",
+            self.get_column_notation(),
+            self.get_row_notation()
+        )
     }
 }
 
 impl BoardState {
-    pub fn best_move(&mut self) -> BestMove {
-        let (x, y) = self.find_best_move();
-        println!("{}, {}", x, y);
-        BestMove(x, y)
-    }
-    // Function to check if the board is full
-    fn is_full(&self) -> bool {
-        self.board.rows.iter().all(|row| {
-            row.iter().all(|cell| match cell {
-                Cell::Playable => false,
-                _ => true,
-            })
-        })
-    }
-
-    // Function to evaluate the board
-    fn evaluate(&self) -> i32 {
-        // Evaluation function will depend on the specific requirements
-        // This is a simple example that only checks if X wins (+1), O wins (-1), or it's a draw (0)
-        // You can expand this to include more complex evaluation criteria
-        let mut x_wins = false;
-        let mut o_wins = false;
-
-        // Check rows and columns
-        for i in 0..3 {
-            if self.board.rows[i][0] == self.board.rows[i][1]
-                && self.board.rows[i][1] == self.board.rows[i][2]
-            {
-                match self.board.rows[i][0] {
-                    Cell::Played(Player::X) => x_wins = true,
-                    Cell::Played(Player::O) => o_wins = true,
-                    _ => {}
-                }
-            }
-            if self.board.rows[0][i] == self.board.rows[1][i]
-                && self.board.rows[1][i] == self.board.rows[2][i]
-            {
-                match self.board.rows[0][i] {
-                    Cell::Played(Player::X) => x_wins = true,
-                    Cell::Played(Player::O) => o_wins = true,
-                    _ => {}
-                }
-            }
+    pub fn new(player_to_move: Player, board: Board, time_setting: TimeSetting) -> Self {
+        Self {
+            player_to_move,
+            board,
+            time_setting,
         }
-
-        // Check diagonals
-        if self.board.rows[0][0] == self.board.rows[1][1]
-            && self.board.rows[1][1] == self.board.rows[2][2]
-        {
-            match self.board.rows[0][0] {
-                Cell::Played(Player::X) => x_wins = true,
-                Cell::Played(Player::O) => o_wins = true,
-                _ => {}
-            }
-        }
-        if self.board.rows[0][2] == self.board.rows[1][1]
-            && self.board.rows[1][1] == self.board.rows[2][0]
-        {
-            match self.board.rows[0][2] {
-                Cell::Played(Player::X) => x_wins = true,
-                Cell::Played(Player::O) => o_wins = true,
-                _ => {}
-            }
-        }
-
-        if x_wins {
-            return 1;
-        } else if o_wins {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-
-    fn alpha_beta_pruning(
-        &mut self,
-        depth: i32,
-        mut alpha: i32,
-        mut beta: i32,
-        is_maximizing: bool,
-    ) -> i32 {
-        if depth == 0 || self.is_full() {
-            return self.evaluate();
-        }
-
-        let mut value;
-        if is_maximizing {
-            value = std::i32::MIN;
-            for i in 0..3 {
-                for j in 0..3 {
-                    if let Cell::Playable = self.board.rows[i][j] {
-                        self.board.rows[i][j] = Cell::Played(self.player_to_move.clone());
-                        value = value.max(self.alpha_beta_pruning(depth - 1, alpha, beta, false));
-                        self.board.rows[i][j] = Cell::Playable;
-                        alpha = alpha.max(value);
-                        if alpha >= beta {
-                            return value;
-                        }
-                    }
-                }
-            }
-        } else {
-            value = std::i32::MAX;
-            for i in 0..3 {
-                for j in 0..3 {
-                    if let Cell::Playable = self.board.rows[i][j] {
-                        let opponent = match self.player_to_move {
-                            Player::X => Player::O,
-                            Player::O => Player::X,
-                        };
-                        self.board.rows[i][j] = Cell::Played(opponent);
-                        value = value.min(self.alpha_beta_pruning(depth - 1, alpha, beta, true));
-                        self.board.rows[i][j] = Cell::Playable;
-                        beta = beta.min(value);
-                        if alpha >= beta {
-                            return value;
-                        }
-                    }
-                }
-            }
-        }
-        value
-    }
-
-    fn find_best_move(&mut self) -> (u32, u32) {
-        let mut best_move: (u32, u32) = (0, 0);
-        let mut best_value = std::i32::MIN;
-
-        for i in 0..3 {
-            for j in 0..3 {
-                if let Cell::Playable = &self.board.rows[i][j] {
-                    self.board.rows[i][j] = Cell::Played(self.player_to_move.clone());
-                    let value = self.alpha_beta_pruning(9, std::i32::MIN, std::i32::MAX, false);
-                    self.board.rows[i][j] = Cell::Playable;
-                    if value > best_value {
-                        best_value = value;
-                        best_move = (i as u32, j as u32);
-                    }
-                }
-            }
-        }
-        best_move
     }
 }
 
@@ -209,6 +89,15 @@ pub enum Cell {
 pub enum Player {
     X,
     O,
+}
+
+impl Player {
+    pub fn opponent(&self) -> Self {
+        match *self {
+            Player::X => Player::O,
+            Player::O => Player::X,
+        }
+    }
 }
 
 impl FromStr for Player {
@@ -234,9 +123,19 @@ impl Parser<Player> for PlayerParser {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Board {
-    pub rows: Vec<Vec<Cell>>,
+    rows: Vec<Vec<Cell>>,
+}
+
+impl Board {
+    pub fn new(rows: Vec<Vec<Cell>>) -> Self {
+        Self { rows }
+    }
+
+    pub fn get_rows(&self) -> Vec<Vec<Cell>> {
+        self.rows.clone()
+    }
 }
 
 impl FromStr for Cell {
@@ -529,5 +428,16 @@ mod test_move_parser {
                 "".to_string()
             ))
         );
+    }
+}
+
+#[cfg(test)]
+mod test_best_move {
+    use crate::parser::move_parser::BestMove;
+
+    #[test]
+    fn test_column_notation() {
+        let best_move = BestMove::new(0, 0);
+        assert_eq!("a", best_move.get_column_notation());
     }
 }

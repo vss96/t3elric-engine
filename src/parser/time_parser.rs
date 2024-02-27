@@ -13,7 +13,7 @@ pub struct TimeRemainingTokenParser;
 const TIME_REMAINING: &str = "time-remaining";
 generate_token_parser!(TIME_REMAINING, TimeRemainingTokenParser);
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TimeSetting {
     TotalTime(Number),
     TimeRemaining(Number),

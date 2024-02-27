@@ -22,10 +22,7 @@ generate_token_parser!(QUIT, QuitParser);
 #[cfg(test)]
 mod test_quit_token_parser {
 
-    use crate::parser::{
-        quit_parser::{Quit, QUIT},
-        Parser,
-    };
+    use crate::parser::{quit_parser::QUIT, Parser};
 
     use super::QuitParser;
 
