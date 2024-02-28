@@ -131,13 +131,10 @@ fn score_diagonal(rows: &Vec<Vec<Cell>>, x: i32, y: i32, player: &Player) -> i32
     let mut d2score: i32 = 0;
     let player_cell = Cell::Played(player.clone());
 
-    let (d1x1, d1y1) = (0, 0);
-    let (d2x1, d2y1) = ((c - 1) as i32, 0);
+    let d1intercept = (x-y).abs();
+    let d2intercept = x + y;
 
-    let (d1xdiff, d1ydiff) = (d1x1 - x, d1y1 - y);
-    let (d2xdiff, d2ydiff) = (d2x1 - x, d2y1 - y);
-
-    if d1xdiff.abs() == d1ydiff.abs() {
+    if d1intercept == 0 {
         for i in 0..c {
             if rows[i][i] == player_cell {
                 d1score += 1;
@@ -145,7 +142,7 @@ fn score_diagonal(rows: &Vec<Vec<Cell>>, x: i32, y: i32, player: &Player) -> i32
         }
     }
 
-    if d2xdiff.abs() == d2ydiff.abs() {
+    if d2intercept == c as i32 - 1 {
         for i in 0..c {
             if rows[i][c - 1 - i] == player_cell {
                 d2score += 1;
