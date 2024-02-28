@@ -24,8 +24,8 @@ impl Solver for GreedySolver {
         let (mut bx, mut by) = (-1, -1);
         for i in 0..rlen {
             for j in 0..clen {
-                let x = &rows[i][j];
-                if *x != Cell::Playable {
+                let cell: &Cell = &rows[i][j];
+                if *cell != Cell::Playable {
                     continue;
                 }
 
@@ -49,11 +49,6 @@ impl Solver for GreedySolver {
                     &board_state.player_to_move.opponent(),
                 );
 
-                let best_opponent_score = max(
-                    opponent_column_score,
-                    max(opponent_diagonal_score, opponent_row_score),
-                );
-
                 let best_player_score = max(
                     player_column_score,
                     max(player_diagonal_score, player_row_score),
@@ -63,19 +58,29 @@ impl Solver for GreedySolver {
                     return Some(BestMove::new(i as u32, j as u32));
                 };
 
-                let row_score = 2 * player_row_score - opponent_row_score;
-                let column_score = 2 * player_column_score - opponent_column_score;
-                let diagonal_score = 2 * player_diagonal_score - opponent_diagonal_score;
+                let row_score = player_row_score - opponent_row_score;
+                let column_score = player_column_score - opponent_column_score;
+                let diagonal_score = player_diagonal_score - opponent_diagonal_score;
 
-                let winning_score = rlen / min(rlen - best_player_score as usize, rlen);
-                let losing_score = 2 * rlen / min(rlen - best_opponent_score as usize, rlen);
+                let player_scores = vec![row_score, column_score, diagonal_score];
+                let opponent_scores = vec![-row_score, -column_score, -diagonal_score];
+                let losing_score = opponent_scores
+                    .clone()
+                    .into_iter()
+                    .map(|s| 2 * rlen as i32 / max(rlen as i32 - s, 1))
+                    .fold(0, |acc, x| acc + x);
+
+                let winning_score = player_scores
+                    .into_iter()
+                    .map(|s| rlen as i32 / max(rlen as i32 - s, 1))
+                    .fold(0, |acc, x| acc + x);
 
                 let scores = vec![
                     row_score,
                     column_score,
                     diagonal_score,
-                    winning_score as i32,
-                    losing_score as i32,
+                    winning_score,
+                    losing_score,
                 ];
 
                 let max_score = scores.clone().into_iter().fold(0, |acc, x| max(acc, x));
@@ -127,7 +132,7 @@ fn score_diagonal(rows: &Vec<Vec<Cell>>, x: i32, y: i32, player: &Player) -> i32
     let player_cell = Cell::Played(player.clone());
 
     let (d1x1, d1y1) = (0, 0);
-    let (d2x1, d2y1) = ((c -1) as i32, 0);
+    let (d2x1, d2y1) = ((c - 1) as i32, 0);
 
     let (d1xdiff, d1ydiff) = (d1x1 - x, d1y1 - y);
     let (d2xdiff, d2ydiff) = (d2x1 - x, d2y1 - y);
@@ -161,7 +166,7 @@ mod test_greedy_solver {
     use super::GreedySolver;
 
     #[test]
-    fn should_pick_winning_move_over_block() {
+    fn should_find_winning_move1() {
         let mut board_state = BoardState::new(
             Player::X,
             Board::new(vec![
@@ -176,12 +181,12 @@ mod test_greedy_solver {
     }
 
     #[test]
-    fn should_block_opponent_winning_move() {
+    fn should_block_winning_move1() {
         let mut board_state = BoardState::new(
             Player::X,
             Board::new(vec![
                 vec![Playable, Playable, Playable],
-                vec![Playable, Played(Player::X), Played(Player::O)],
+                vec![Played(Player::X), Played(Player::X), Played(Player::O)],
                 vec![Playable, Playable, Played(Player::O)],
             ]),
             TimeSetting::Infinite,
@@ -191,7 +196,7 @@ mod test_greedy_solver {
     }
 
     #[test]
-    fn should_find_winning_move1() {
+    fn should_find_winning_move2() {
         let mut board_state = BoardState::new(
             Player::O,
             Board::new(vec![
@@ -206,7 +211,7 @@ mod test_greedy_solver {
     }
 
     #[test]
-    fn should_find_winning_move2() {
+    fn should_find_winning_move3() {
         let mut board_state = BoardState::new(
             Player::X,
             Board::new(vec![
@@ -221,7 +226,7 @@ mod test_greedy_solver {
     }
 
     #[test]
-    fn should_find_winning_move3() {
+    fn should_block_winning_move2() {
         let mut board_state = BoardState::new(
             Player::O,
             Board::new(vec![
@@ -233,5 +238,35 @@ mod test_greedy_solver {
         );
         let best_move = GreedySolver::solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
+    }
+
+    #[test]
+    fn should_find_winning_move4() {
+        let mut board_state = BoardState::new(
+            Player::X,
+            Board::new(vec![
+                vec![Played(Player::O), Played(Player::X), Playable],
+                vec![Playable, Played(Player::X), Playable],
+                vec![Playable, Played(Player::O), Playable],
+            ]),
+            TimeSetting::Infinite,
+        );
+        let best_move = GreedySolver::solve(&mut board_state);
+        assert_eq!(best_move, Some(BestMove::new(2, 0)));
+    }
+
+    #[test]
+    fn should_block_winning_move3() {
+        let mut board_state = BoardState::new(
+            Player::O,
+            Board::new(vec![
+                vec![Played(Player::O), Played(Player::X), Playable],
+                vec![Playable, Played(Player::X), Playable],
+                vec![Playable, Playable, Playable],
+            ]),
+            TimeSetting::Infinite,
+        );
+        let best_move = GreedySolver::solve(&mut board_state);
+        assert_eq!(best_move, Some(BestMove::new(2, 1)));
     }
 }
