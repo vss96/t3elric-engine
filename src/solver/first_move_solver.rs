@@ -5,7 +5,7 @@ use super::Solver;
 pub struct FirstMoveSolver;
 
 impl Solver for FirstMoveSolver {
-    fn solve(board_state: &BoardState) -> Option<crate::parser::BestMove> {
+    fn solve(&self, board_state: &BoardState) -> Option<crate::parser::BestMove> {
         let rows = &board_state.board.get_rows();
         // println!("rows: {:?}", rows);
         let (mut x, mut y) = (0, 0);

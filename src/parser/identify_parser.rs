@@ -20,7 +20,7 @@ impl Identity {
         let mut engine_info = HashMap::new();
         engine_info.insert("name".to_string(), "t3elric-engine".to_string());
         engine_info.insert("author".to_string(), "shettyvikas209@gmail.com".to_string());
-        engine_info.insert("version".to_string(), "1.1.0".to_string());
+        engine_info.insert("version".to_string(), "1.1.1".to_string());
         engine_info.insert(
             "url".to_string(),
             "https://github.com/vss96/t3elric-engine".to_string(),
@@ -35,7 +35,6 @@ impl Display for Identity {
         for (key, value) in &self.engine_info {
             write!(f, "identify {} {}\n", key, value)?;
         }
-        write!(f, "identify ok\n")?;
         Ok(())
     }
 }

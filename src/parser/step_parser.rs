@@ -13,9 +13,15 @@ use super::{
 #[derive(PartialEq, Eq, Debug)]
 pub struct Step(pub Version);
 
+impl Step {
+    pub fn new(version: Number) -> Self {
+        Self(Version(version))
+    }
+}
+
 impl Display for Step {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} version {} ok", ST3P, self.0 .0)
+        write!(f, "{} version {}", ST3P, self.0 .0)
     }
 }
 

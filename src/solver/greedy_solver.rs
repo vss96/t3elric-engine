@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::max;
 
 use crate::parser::{BestMove, BoardState, Cell, Player};
 
@@ -7,7 +7,7 @@ use super::Solver;
 pub struct GreedySolver;
 
 impl Solver for GreedySolver {
-    fn solve(board_state: &BoardState) -> Option<BestMove> {
+    fn solve(&self, board_state: &BoardState) -> Option<BestMove> {
         let rows = &board_state.board.get_rows();
         let (rlen, clen) = (rows.len(), rows[0].len());
 
@@ -65,13 +65,12 @@ impl Solver for GreedySolver {
                 let player_scores = vec![row_score, column_score, diagonal_score];
                 let opponent_scores = vec![-row_score, -column_score, -diagonal_score];
                 let losing_score = opponent_scores
-                    .clone()
-                    .into_iter()
+                    .iter()
                     .map(|s| 2 * rlen as i32 / max(rlen as i32 - s, 1))
                     .fold(0, |acc, x| acc + x);
 
                 let winning_score = player_scores
-                    .into_iter()
+                    .iter()
                     .map(|s| rlen as i32 / max(rlen as i32 - s, 1))
                     .fold(0, |acc, x| acc + x);
 
@@ -83,7 +82,7 @@ impl Solver for GreedySolver {
                     losing_score,
                 ];
 
-                let max_score = scores.clone().into_iter().fold(0, |acc, x| max(acc, x));
+                let max_score = scores.iter().fold(0, |acc, x| max(acc, *x));
 
                 if max_score > best_score {
                     best_score = max_score;
@@ -101,28 +100,16 @@ impl Solver for GreedySolver {
 }
 
 fn score_column(rows: &Vec<Vec<Cell>>, x: usize, y: usize, player: &Player) -> i32 {
-    let r = rows.len();
-    let mut score: i32 = 0;
-    let player_cell = Cell::Played(player.clone());
-
-    for i in 0..r {
-        if rows[i][y] == player_cell {
-            score += 1;
-        }
-    }
-    score
+    rows.iter()
+        .filter(|c| c[y] == Cell::Played(player.clone()))
+        .count() as i32
 }
 
 fn score_row(rows: &Vec<Vec<Cell>>, x: usize, y: usize, player: &Player) -> i32 {
-    let c = rows[0].len();
-    let mut score: i32 = 0;
-    let player_cell = Cell::Played(player.clone());
-    for i in 0..c {
-        if rows[x][i] == player_cell {
-            score += 1;
-        }
-    }
-    score
+    rows[x]
+        .iter()
+        .filter(|c| **c == Cell::Played(player.clone()))
+        .count() as i32
 }
 
 fn score_diagonal(rows: &Vec<Vec<Cell>>, x: i32, y: i32, player: &Player) -> i32 {
@@ -131,7 +118,7 @@ fn score_diagonal(rows: &Vec<Vec<Cell>>, x: i32, y: i32, player: &Player) -> i32
     let mut d2score: i32 = 0;
     let player_cell = Cell::Played(player.clone());
 
-    let d1intercept = (x-y).abs();
+    let d1intercept = x - y;
     let d2intercept = x + y;
 
     if d1intercept == 0 {
@@ -173,7 +160,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
     }
 
@@ -188,7 +175,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
     }
 
@@ -203,7 +190,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
     }
 
@@ -218,7 +205,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 1)));
     }
 
@@ -233,7 +220,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
     }
 
@@ -248,7 +235,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
     }
 
@@ -263,7 +250,7 @@ mod test_greedy_solver {
             ]),
             TimeSetting::Infinite,
         );
-        let best_move = GreedySolver::solve(&mut board_state);
+        let best_move = GreedySolver.solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 1)));
     }
 }

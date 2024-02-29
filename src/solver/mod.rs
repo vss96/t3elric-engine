@@ -6,5 +6,5 @@ mod greedy_solver;
 pub use greedy_solver::GreedySolver;
 
 pub trait Solver {
-    fn solve(board_state: &BoardState) -> Option<BestMove>;
+    fn solve(&self, board_state: &BoardState) -> Option<BestMove>;
 }
