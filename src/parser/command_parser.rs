@@ -1,60 +1,63 @@
+use std::fmt::{Display, Formatter};
+
 use either::Either;
 
-use crate::solver::{GreedySolver, Solver};
+
 
 use super::{
     identify_parser::{IdentifyParser, Identity},
-    move_parser::{map_to_move, BoardState, MoveParser, MoveParserReturnType},
+    move_parser::{BoardState, MoveParser, MoveParserReturnType},
+    number_parser::Number,
     or_parser::Or4,
-    quit_parser::{Quit, QuitParser},
+    quit_parser::QuitParser,
     step_parser::{Step, StepParser, StepParserReturnType},
-    version_parser::Version,
+    BestMove,
 };
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum Command {
-    Step(Step),
-    Identify(Identity),
+    Init(Number),
+    Identify,
     Move(BoardState),
-    Quit(Quit),
+    Quit,
 }
 
 pub type CommandParser = Or4<StepParser, IdentifyParser, MoveParser, QuitParser>;
-pub type ComandParserReturnType =
-    Either<StepParserReturnType, Either<String, Either<MoveParserReturnType, String>>>;
+pub type ComandParserReturnType = (
+    Either<StepParserReturnType, Either<String, Either<MoveParserReturnType, String>>>,
+    String,
+);
 
-pub fn map_to_command(parser_output: ComandParserReturnType) -> Command {
-    return match parser_output {
-        Either::Left(output) => {
-            let (_, (_, (_, (_, version)))) = output;
+impl From<ComandParserReturnType> for Command {
+    fn from(value: ComandParserReturnType) -> Self {
+        match value.0 {
+            Either::Left(output) => {
+                let (_, (_, (_, (_, version)))) = output;
 
-            Command::Step(Step(Version(version)))
+                Command::Init(version)
+            }
+            Either::Right(Either::Left(_)) => Command::Identify,
+            Either::Right(Either::Right(Either::Left(output))) => {
+                Command::Move(BoardState::from(output))
+            }
+            Either::Right(Either::Right(Either::Right(_))) => Command::Quit,
         }
-        Either::Right(Either::Left(_)) => Command::Identify(Identity::new()),
-        Either::Right(Either::Right(Either::Left(output))) => Command::Move(map_to_move(output)),
-        Either::Right(Either::Right(Either::Right(_))) => Command::Quit(Quit {}),
-    };
+    }
 }
 
-impl Command {
-    pub fn execute(&self) -> Result<(), String> {
-        match self {
-            Command::Step(step) => {
-                println!("{}", step);
-            }
-            Command::Identify(identity) => {
-                println!("{}", identity);
-            }
-            Command::Move(board_state) => {
-                let greedy_move = GreedySolver::solve(board_state);
-                println!("{}", greedy_move.unwrap());
-            }
-            Command::Quit(quit) => {
-                quit.exit_engine();
-            }
-        };
+pub enum CommandResponse {
+    StepOk(Step),
+    Identity(Identity),
+    Play(BestMove),
+}
 
-        Ok(())
+impl Display for CommandResponse {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CommandResponse::StepOk(step) => write!(f, "{} ok", step),
+            CommandResponse::Identity(identity) => write!(f, "{}identify ok", identity),
+            CommandResponse::Play(best_move) => write!(f, "{}", best_move),
+        }
     }
 }
 
@@ -71,13 +74,13 @@ mod test_command {
         Parser,
     };
 
-    use super::{map_to_command, CommandParser};
+    use super::CommandParser;
 
     #[test]
     fn test_move() {
         let move_string = String::from("move 3_/_x_/3_ o");
         let val = &move_string.clone();
-        let command = CommandParser::parse_from(val).map(|(res, _)| map_to_command(res));
+        let command = CommandParser::parse_from(val).map(Command::from);
         assert_eq!(
             command,
             Ok(Command::Move(BoardState::new(

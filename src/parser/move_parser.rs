@@ -238,26 +238,28 @@ pub type MoveParserReturnType = Either<
     >,
 >;
 
-pub fn map_to_move(parser_output: MoveParserReturnType) -> BoardState {
-    match parser_output {
-        Either::Left(((_, (_, (board, player))), (_, (_, (_, time))))) => BoardState {
-            player_to_move: player,
-            board,
-            time_setting: TimeSetting::TotalTime(time),
-        },
-        Either::Right(Either::Left(((_, (_, (board, player))), (_, (_, (_, time)))))) => {
-            BoardState {
+impl From<MoveParserReturnType> for BoardState {
+    fn from(value: MoveParserReturnType) -> Self {
+        match value {
+            Either::Left(((_, (_, (board, player))), (_, (_, (_, time))))) => BoardState {
                 player_to_move: player,
                 board,
-                time_setting: TimeSetting::TimeRemaining(time),
+                time_setting: TimeSetting::TotalTime(time),
+            },
+            Either::Right(Either::Left(((_, (_, (board, player))), (_, (_, (_, time)))))) => {
+                BoardState {
+                    player_to_move: player,
+                    board,
+                    time_setting: TimeSetting::TimeRemaining(time),
+                }
             }
-        }
 
-        Either::Right(Either::Right(((_, (_, (board, player))), _))) => BoardState {
-            player_to_move: player,
-            board,
-            time_setting: TimeSetting::Infinite,
-        },
+            Either::Right(Either::Right(((_, (_, (board, player))), _))) => BoardState {
+                player_to_move: player,
+                board,
+                time_setting: TimeSetting::Infinite,
+            },
+        }
     }
 }
 
