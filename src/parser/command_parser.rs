@@ -2,8 +2,6 @@ use std::fmt::{Display, Formatter};
 
 use either::Either;
 
-
-
 use super::{
     identify_parser::{IdentifyParser, Identity},
     move_parser::{BoardState, MoveParser, MoveParserReturnType},
