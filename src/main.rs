@@ -1,5 +1,6 @@
 use std::io::{stdin, Result};
 
+mod evaluator;
 mod executor;
 mod parser;
 mod solver;
@@ -8,7 +9,7 @@ use parser::{Command, CommandParser, Parser};
 use solver::GreedySolver;
 
 fn main() -> Result<()> {
-    let my_solver = GreedySolver {};
+    let my_solver = GreedySolver::default();
     let executor = CommandExecutor::new(Box::new(my_solver));
     loop {
         let mut buffer = String::new();
