@@ -10,8 +10,8 @@ where
 {
     fn parse_from(val: &String) -> ParseResult<Either<U, V>> {
         P1::parse_from(val)
-            .map(|v| (Either::Left(v.0), v.1))
-            .or_else(|_| P2::parse_from(val).map(|v| (Either::Right(v.0), v.1)))
+            .map(|(val, follow)| (Either::Left(val), follow))
+            .or_else(|_| P2::parse_from(val).map(|(val, follow)| (Either::Right(val), follow)))
     }
 }
 
