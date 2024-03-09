@@ -219,11 +219,11 @@ pub type T3NParser = And2<BoardParser, PlayerParser>;
 
 pub type BasicMoveParser = And3<MoveTokenParser, WhiteSpaceParser, T3NParser>;
 
-pub type MoveWithInfiniteTimeParser = And2<BasicMoveParser, NothingParser>;
+pub type MoveWithInfiniteTime = And2<BasicMoveParser, NothingParser>;
 pub type MoveWithTotalTime = And3<BasicMoveParser, WhiteSpaceParser, TotalTimeParser>;
 pub type MoveWithTimeRemaining = And3<BasicMoveParser, WhiteSpaceParser, TimeRemainingParser>;
 
-pub type MoveParser = Or3<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTimeParser>;
+pub type MoveParser = Or3<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTime>;
 pub type MoveParserReturnType = Either<
     (
         (String, (String, (Board, Player))),
