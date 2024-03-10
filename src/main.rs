@@ -16,12 +16,19 @@ fn main() -> Result<()> {
         stdin().read_line(&mut buffer)?;
         let input_string = buffer.trim().to_owned();
 
-        let command = CommandParser::parse_from(&input_string)
-            .map(Command::from)
-            .unwrap();
+        let res = CommandParser::parse_from(&input_string)
+            .map(Command::from);
 
-        executor
-            .execute(command)
-            .map_either(|f| println!("{}", f), |g| g.exit_engine());
+        match res {
+            Ok(command) => 
+               { executor
+                .execute(command)
+                .map_either(|f| println!("{}", f), |g| g.exit_engine());
+               }
+            ,
+            Err(_) => 
+                eprintln!("Invalid input: {}", input_string)
+            
+        };
     }
 }
