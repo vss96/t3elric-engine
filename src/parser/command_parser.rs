@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use either::Either;
+use std::str::FromStr;
 
 use super::{
     identify_parser::{IdentifyParser, Identity},
@@ -9,7 +10,7 @@ use super::{
     or_parser::Or4,
     quit_parser::QuitParser,
     step_parser::{Step, StepParser, StepParserReturnType},
-    BestMove,
+    BestMove, Parser,
 };
 
 #[derive(Eq, PartialEq, Debug)]
@@ -40,6 +41,13 @@ impl From<ComandParserReturnType> for Command {
             }
             Either::Right(Either::Right(Either::Right(_))) => Command::Quit,
         }
+    }
+}
+
+impl FromStr for Command {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        CommandParser::parse_from(&s.to_string()).map(Command::from)
     }
 }
 
