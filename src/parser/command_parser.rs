@@ -84,7 +84,7 @@ mod test_command {
 
     #[test]
     fn test_move() {
-        let move_string = String::from("move 3_/_x_/3_ o");
+        let move_string = String::from("move 3_/_x_/3_ o win-length 3");
         let val = &move_string.clone();
         let command = CommandParser::parse_from(val).map(Command::from);
         assert_eq!(
@@ -96,7 +96,8 @@ mod test_command {
                     vec![Playable, Played(Player::X), Playable],
                     vec![Playable, Playable, Playable]
                 ]),
-                TimeSetting::Infinite
+                TimeSetting::Infinite,
+                Some(3)
             )))
         );
     }

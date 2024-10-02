@@ -24,7 +24,7 @@ fn main() -> Result<()> {
                     .execute(command)
                     .map_either(|f| println!("{}", f), |g| g.exit_engine());
             }
-            Err(_) => eprintln!("Invalid input: {}", input_string),
+            Err(msg) => eprintln!("Invalid input: {} || msg: {}", input_string, msg),
         };
     }
 }

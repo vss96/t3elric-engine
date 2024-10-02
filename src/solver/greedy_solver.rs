@@ -183,6 +183,7 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::X), Played(Player::X)],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
@@ -198,6 +199,7 @@ mod test_greedy_solver {
                 vec![Playable, Playable, Played(Player::O)],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
@@ -213,6 +215,7 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::X), Played(Player::X)],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
@@ -228,6 +231,7 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::X), Played(Player::O)],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 1)));
@@ -243,6 +247,7 @@ mod test_greedy_solver {
                 vec![Played(Player::X), Played(Player::O), Played(Player::X)],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
@@ -258,6 +263,7 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::O), Playable],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 2)));
@@ -273,6 +279,7 @@ mod test_greedy_solver {
                 vec![Playable, Playable, Playable],
             ]),
             TimeSetting::Infinite,
+            None
         );
         let best_move = GreedySolver::default().solve(&mut board_state);
         assert_eq!(best_move, Some(BestMove::new(2, 1)));

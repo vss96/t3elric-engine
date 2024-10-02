@@ -5,13 +5,7 @@ use either::Either;
 use crate::generate_token_parser;
 
 use super::{
-    and_parser::{And2, And3},
-    nothing_parser::{Nothing, NothingParser},
-    number_parser::Number,
-    or_parser::Or3,
-    time_parser::{TimeRemainingParser, TimeSetting, TotalTimeParser},
-    whitespace_parser::WhiteSpaceParser,
-    ParseResult, Parser,
+    and_parser::{And2, And3}, anything_parser::{Anything, AnythingParser}, nothing_parser::{Nothing, NothingParser}, number_parser::Number, or_parser::{Or2, Or3}, time_parser::{TimeRemainingParser, TimeSetting, TotalTimeParser}, whitespace_parser::WhiteSpaceParser, ParseResult, Parser
 };
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -19,6 +13,7 @@ pub struct BoardState {
     pub player_to_move: Player,
     pub board: Board,
     pub time_setting: TimeSetting,
+    pub win_length: u32,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -64,19 +59,31 @@ impl Display for BestMove {
 }
 
 impl BoardState {
-    pub fn new(player_to_move: Player, board: Board, time_setting: TimeSetting) -> Self {
+    pub fn new(
+        player_to_move: Player,
+        board: Board,
+        time_setting: TimeSetting,
+        win_length: Option<u32>,
+    ) -> Self {
+        let default_win_length: u32 = board.clone().rows.len() as u32;
         Self {
             player_to_move,
             board,
             time_setting,
+            win_length: win_length.unwrap_or(default_win_length),
         }
     }
 }
 
 pub struct MoveTokenParser;
 pub const MOVE: &str = "move";
-
 generate_token_parser!(MOVE, MoveTokenParser);
+
+pub struct WinLengthTokenParser;
+pub const WINL: &str = "win-length";
+generate_token_parser!(WINL, WinLengthTokenParser);
+
+pub type WinLengthParser = And3<WinLengthTokenParser, WhiteSpaceParser, Number>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cell {
@@ -219,46 +226,60 @@ pub type T3NParser = And2<BoardParser, PlayerParser>;
 
 pub type BasicMoveParser = And3<MoveTokenParser, WhiteSpaceParser, T3NParser>;
 
-pub type MoveWithInfiniteTime = And2<BasicMoveParser, NothingParser>;
+pub type MoveWithInfiniteTime = And2<BasicMoveParser, AnythingParser>;
 pub type MoveWithTotalTime = And3<BasicMoveParser, WhiteSpaceParser, TotalTimeParser>;
 pub type MoveWithTimeRemaining = And3<BasicMoveParser, WhiteSpaceParser, TimeRemainingParser>;
 
-pub type MoveParser = Or3<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTime>;
-pub type MoveParserReturnType = Either<
-    (
-        (String, (String, (Board, Player))),
-        (String, (String, (String, Number))),
-    ),
+pub type MoveParser = And2<
+    Or3<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTime>,
+    Or2<And2<WhiteSpaceParser,WinLengthParser>, NothingParser>,
+>;
+pub type MoveParserReturnType = (
     Either<
         (
             (String, (String, (Board, Player))),
             (String, (String, (String, Number))),
         ),
-        ((String, (String, (Board, Player))), Nothing),
+        Either<
+            (
+                (String, (String, (Board, Player))),
+                (String, (String, (String, Number))),
+            ),
+            ((String, (String, (Board, Player))), Anything),
+        >,
     >,
->;
+    Either<(String, (String, (String, Number))), Nothing>,
+);
 
 impl From<MoveParserReturnType> for BoardState {
     fn from(value: MoveParserReturnType) -> Self {
         match value {
-            Either::Left(((_, (_, (board, player))), (_, (_, (_, time))))) => BoardState {
-                player_to_move: player,
-                board,
-                time_setting: TimeSetting::TotalTime(time),
-            },
-            Either::Right(Either::Left(((_, (_, (board, player))), (_, (_, (_, time)))))) => {
-                BoardState {
-                    player_to_move: player,
+            (Either::Left(((_, (_, (board, player))), (_, (_, (_, time))))), win_length) => {
+                BoardState::new(
+                    player,
                     board,
-                    time_setting: TimeSetting::TimeRemaining(time),
-                }
+                    TimeSetting::TotalTime(time),
+                    win_length.map_left(|(_, (_, (_, number)))| number.0).left(),
+                )
             }
-
-            Either::Right(Either::Right(((_, (_, (board, player))), _))) => BoardState {
-                player_to_move: player,
+            (
+                Either::Right(Either::Left(((_, (_, (board, player))), (_, (_, (_, time)))))),
+                win_length,
+            ) => BoardState::new(
+                player,
                 board,
-                time_setting: TimeSetting::Infinite,
-            },
+                TimeSetting::TimeRemaining(time),
+                win_length.map_left(|(_, (_, (_, number)))| number.0).left(),
+            ),
+
+            (Either::Right(Either::Right(((_, (_, (board, player))), _))), win_length) => {
+                BoardState::new(
+                    player,
+                    board,
+                    TimeSetting::Infinite,
+                    win_length.map_left(|(_, (_, (_, number)))| number.0).left(),
+                )
+            }
         }
     }
 }
@@ -318,7 +339,7 @@ mod test_t3nparser {
 mod test_move_parser {
     use either::Either::{Left, Right};
 
-    use crate::parser::{nothing_parser::Nothing, Parser};
+    use crate::parser::{anything_parser::Anything, nothing_parser::Nothing, Parser};
 
     use super::*;
 
@@ -333,7 +354,7 @@ mod test_move_parser {
         assert_eq!(
             res,
             Ok((
-                Right(Right((
+                (Right(Right((
                     ((
                         String::from("move"),
                         (
@@ -350,9 +371,9 @@ mod test_move_parser {
                             )
                         )
                     )),
-                    Nothing
-                ))),
-                String::from("")
+                    Anything::new("".to_string())
+                ))), Right(Nothing)),
+                String::from(""),
             ))
         );
     }
@@ -365,7 +386,7 @@ mod test_move_parser {
 
         assert_eq!(
             res,
-            Ok((
+            Ok(((
                 Left((
                     ((
                         String::from("move"),
@@ -387,7 +408,7 @@ mod test_move_parser {
                         " ".to_string(),
                         ("time".to_string(), (" ".to_string(), Number(1000)))
                     )
-                )),
+                )), Right(Nothing)),
                 "".to_string()
             ))
         );
@@ -401,7 +422,7 @@ mod test_move_parser {
 
         assert_eq!(
             res,
-            Ok((
+            Ok(((
                 Right(Left((
                     ((
                         String::from("move"),
@@ -426,8 +447,41 @@ mod test_move_parser {
                             (" ".to_string(), Number(10000))
                         )
                     )
-                ))),
+                ))), Right(Nothing)),
                 "".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_move_with_win_length() {
+        let move_string = String::from("move 3_/3_/3_ x win-length 3");
+
+        let res = MoveParser::parse_from(&move_string);
+
+        assert_eq!(
+            res,
+            Ok((
+                (Right(Right((
+                    ((
+                        String::from("move"),
+                        (
+                            String::from(" "),
+                            (
+                                Board {
+                                    rows: vec![
+                                        vec![Playable, Playable, Playable],
+                                        vec![Playable, Playable, Playable],
+                                        vec![Playable, Playable, Playable]
+                                    ]
+                                },
+                                Player::X
+                            )
+                        )
+                    )),
+                    Anything::new(" win-length 3".to_string())
+                ))), Left((" ".to_string(), ("win-length".to_string(), (" ".to_string(), Number(3)))))),
+                String::from(""),
             ))
         );
     }
