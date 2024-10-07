@@ -1,3 +1,5 @@
+use crate::parser::BoardState;
+
 use super::Evaluator;
 
 pub struct ReduceEvaluator {
@@ -17,14 +19,14 @@ impl ReduceEvaluator {
 impl Evaluator for ReduceEvaluator {
     fn score(
         &self,
-        rows: &Vec<Vec<crate::parser::Cell>>,
+        board_state: &BoardState,
         x: usize,
         y: usize,
         player: &crate::parser::Player,
     ) -> i32 {
         self.evaluators
             .iter()
-            .map(|f| f.score(rows, x, y, player))
+            .map(|f| f.score(board_state, x, y, player))
             .fold(0, |acc, x| (self.reducer)(acc, x))
     }
 }

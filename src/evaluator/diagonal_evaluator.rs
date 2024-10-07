@@ -1,13 +1,14 @@
 use std::cmp::max;
 
-use crate::parser::{Cell, Player};
+use crate::parser::{BoardState, Cell, Player};
 
 use super::Evaluator;
 
 pub struct DiagonalEvaluator;
 
 impl Evaluator for DiagonalEvaluator {
-    fn score(&self, rows: &Vec<Vec<Cell>>, x: usize, y: usize, player: &Player) -> i32 {
+    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> i32 {
+        let rows = board_state.board.get_rows();
         let c = rows[0].len();
         let mut d1score: i32 = 0;
         let mut d2score: i32 = 0;

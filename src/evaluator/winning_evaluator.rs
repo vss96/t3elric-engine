@@ -1,5 +1,7 @@
 use std::cmp::max;
 
+use crate::parser::BoardState;
+
 use super::Evaluator;
 
 pub struct WinningEvaluator {
@@ -15,13 +17,13 @@ impl WinningEvaluator {
 impl Evaluator for WinningEvaluator {
     fn score(
         &self,
-        rows: &Vec<Vec<crate::parser::Cell>>,
+        board_state: &BoardState,
         x: usize,
         y: usize,
         player: &crate::parser::Player,
     ) -> i32 {
-        let s = self.evaluator.score(rows, x, y, player);
-        let rlen = rows.len();
-        rlen as i32 / max(rlen as i32 - s, 1)
+        let s = self.evaluator.score(board_state, x, y, player);
+        let winlength = board_state.win_length;
+        winlength as i32 / max(winlength as i32 - s, 1)
     }
 }

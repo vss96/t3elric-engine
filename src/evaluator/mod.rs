@@ -1,7 +1,7 @@
-use crate::parser::{Cell, Player};
+use crate::parser::{BoardState, Player};
 
 pub trait Evaluator {
-    fn score(&self, rows: &Vec<Vec<Cell>>, x: usize, y: usize, player: &Player) -> i32;
+    fn score(&self, board: &BoardState, x: usize, y: usize, player: &Player) -> i32;
 }
 
 mod column_evaluator;

@@ -136,11 +136,11 @@ impl Solver for GreedySolver {
 
                 let scores = vec![
                     self.player_score_evaluator
-                        .score(&rows, i, j, &board_state.player_to_move),
+                        .score(board_state, i, j, &board_state.player_to_move),
                     self.winning_evaluator
-                        .score(&rows, i, j, &board_state.player_to_move),
+                        .score(board_state, i, j, &board_state.player_to_move),
                     self.losing_evaluator
-                        .score(&rows, i, j, &board_state.player_to_move),
+                        .score(board_state, i, j, &board_state.player_to_move),
                 ];
 
                 if scores[0] == (rlen as i32 - 1) {

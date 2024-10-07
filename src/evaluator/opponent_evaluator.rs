@@ -1,4 +1,4 @@
-use crate::parser::{Cell, Player};
+use crate::parser::{BoardState, Cell, Player};
 
 use super::Evaluator;
 
@@ -13,7 +13,7 @@ impl OpponentEvaluator {
 }
 
 impl Evaluator for OpponentEvaluator {
-    fn score(&self, rows: &Vec<Vec<Cell>>, x: usize, y: usize, player: &Player) -> i32 {
-        self.evaluator.score(rows, x, y, &player.opponent())
+    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> i32 {
+        self.evaluator.score(board_state, x, y, &player.opponent())
     }
 }

@@ -1,3 +1,5 @@
+use crate::parser::BoardState;
+
 use super::Evaluator;
 
 pub struct MapEvaluator {
@@ -14,11 +16,11 @@ impl MapEvaluator {
 impl Evaluator for MapEvaluator {
     fn score(
         &self,
-        rows: &Vec<Vec<crate::parser::Cell>>,
+        board_state: &BoardState,
         x: usize,
         y: usize,
         player: &crate::parser::Player,
     ) -> i32 {
-        (self.mapper)(self.evaluator.score(rows, x, y, player))
+        (self.mapper)(self.evaluator.score(board_state, x, y, player))
     }
 }
