@@ -143,7 +143,7 @@ impl Solver for GreedySolver {
                         .score(board_state, i, j, &board_state.player_to_move),
                 ];
 
-                if scores[0] == (rlen as i32 - 1) {
+                if scores[0] == (board_state.win_length as i32 - 1) {
                     return Some(BestMove::new(i as u32, j as u32));
                 };
 
