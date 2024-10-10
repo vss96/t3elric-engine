@@ -6,11 +6,40 @@ pub struct ColumnEvaluator;
 
 impl Evaluator for ColumnEvaluator {
     fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> i32 {
-        board_state
-        .board
-        .get_rows()
-        .iter()
-            .filter(|c| c[y] == Cell::Played(player.clone()))
-            .count() as i32
+        let rows = board_state.board.get_rows();
+        let mut score = 0;
+        let mut empty_space = 1;
+        for i in (0..x).rev() {
+            if rows[i][y] == Cell::Playable {
+                empty_space += 1;
+                continue;
+            }
+
+            if rows[i][y] == Cell::Played(player.clone()) {
+                score += 1
+            } else {
+                break;
+            }
+        }
+
+        for i in x + 1..rows.len() {
+
+            if rows[i][y] == Cell::Playable {
+                empty_space +=1;
+                continue;
+            }
+
+            if rows[i][y] == Cell::Played(player.clone()) {
+                score += 1
+            } else {
+                break;
+            }
+        }
+
+        if score + empty_space < board_state.win_length {
+            score = 0;
+        }
+
+        score as i32
     }
 }

@@ -1,4 +1,4 @@
-use crate::parser::{BoardState, Cell, Player};
+use crate::parser::{BoardState, Player};
 
 use super::Evaluator;
 

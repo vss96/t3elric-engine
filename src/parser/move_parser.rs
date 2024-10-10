@@ -92,7 +92,7 @@ pub enum Cell {
     Played(Player),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Player {
     X,
     O,
