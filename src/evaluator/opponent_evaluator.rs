@@ -13,7 +13,7 @@ impl OpponentEvaluator {
 }
 
 impl Evaluator for OpponentEvaluator {
-    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> i32 {
+    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> f32 {
         self.evaluator.score(board_state, x, y, &player.opponent())
     }
 }

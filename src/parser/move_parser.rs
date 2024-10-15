@@ -5,7 +5,14 @@ use either::Either;
 use crate::generate_token_parser;
 
 use super::{
-    and_parser::{And2, And3}, anything_parser::{Anything, AnythingParser}, nothing_parser::{Nothing, NothingParser}, number_parser::Number, or_parser::{Or2, Or3}, time_parser::{TimeRemainingParser, TimeSetting, TotalTimeParser}, whitespace_parser::WhiteSpaceParser, ParseResult, Parser
+    and_parser::{And2, And3},
+    anything_parser::{Anything, AnythingParser},
+    nothing_parser::{Nothing, NothingParser},
+    number_parser::Number,
+    or_parser::{Or2, Or3},
+    time_parser::{TimeRemainingParser, TimeSetting, TotalTimeParser},
+    whitespace_parser::WhiteSpaceParser,
+    ParseResult, Parser,
 };
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -16,7 +23,7 @@ pub struct BoardState {
     pub win_length: u32,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BestMove(u32, u32);
 
 impl BestMove {
@@ -71,6 +78,36 @@ impl BoardState {
             board,
             time_setting,
             win_length: win_length.unwrap_or(default_win_length),
+        }
+    }
+
+    pub fn is_game_over(&self) -> bool {
+        self.board
+            .check_win(&self.player_to_move.opponent(), self.win_length)
+            || self.get_possible_moves().is_empty()
+    }
+
+    pub fn get_possible_moves(&self) -> Vec<BestMove> {
+        let mut moves = Vec::new();
+        let rows = self.board.get_rows();
+        for i in 0..rows.len() {
+            for j in 0..rows[0].len() {
+                if rows[i][j] == Cell::Playable {
+                    moves.push(BestMove::new(i as u32, j as u32));
+                }
+            }
+        }
+        moves
+    }
+
+    pub fn apply_move(&self, mv: &BestMove) -> BoardState {
+        let mut new_board = self.board.clone();
+        new_board.play_move(mv.0, mv.1, self.player_to_move.clone());
+        BoardState {
+            player_to_move: self.player_to_move.opponent(),
+            board: new_board,
+            time_setting: self.time_setting.clone(),
+            win_length: self.win_length,
         }
     }
 }
@@ -142,6 +179,89 @@ impl Board {
 
     pub fn get_rows(&self) -> Vec<Vec<Cell>> {
         self.rows.clone()
+    }
+
+    pub fn play_move(&mut self, x: u32, y: u32, player: Player) {
+        if let Some(row) = self.rows.get_mut(x as usize) {
+            if let Some(cell) = row.get_mut(y as usize) {
+                *cell = Cell::Played(player);
+            }
+        }
+    }
+
+    pub fn check_win(&self, player: &Player, win_length: u32) -> bool {
+        let rows = self.get_rows();
+        let rlen = rows.len();
+        let clen = rows[0].len();
+
+        // Check rows
+        for row in rows {
+            let mut count = 0;
+            for cell in row {
+                if cell == Cell::Played(player.clone()) {
+                    count += 1;
+                    if count >= win_length {
+                        return true;
+                    }
+                } else {
+                    count = 0;
+                }
+            }
+        }
+
+        // Check columns
+        for col in 0..clen {
+            let mut count = 0;
+            for row in 0..rlen {
+                if self.rows[row][col] == Cell::Played(player.clone()) {
+                    count += 1;
+                    if count >= win_length {
+                        return true;
+                    }
+                } else {
+                    count = 0;
+                }
+            }
+        }
+
+        // Check diagonals
+        for row in 0..rlen {
+            for col in 0..clen {
+                if self.rows[row][col] == Cell::Played(player.clone()) {
+                    // Check diagonal down-right
+                    if row + win_length as usize <= rlen && col + win_length as usize <= clen {
+                        let mut count = 1;
+                        for i in 1..win_length as usize {
+                            if self.rows[row + i][col + i] == Cell::Played(player.clone()) {
+                                count += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        if count >= win_length as usize {
+                            return true;
+                        }
+                    }
+
+                    // Check diagonal up-right
+                    if row >= (win_length as usize - 1) && col + win_length as usize <= clen {
+                        let mut count = 1;
+                        for i in 1..win_length as usize {
+                            if self.rows[row - i][col + i] == Cell::Played(player.clone()) {
+                                count += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        if count >= win_length as usize {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        false
     }
 }
 
@@ -232,7 +352,7 @@ pub type MoveWithTimeRemaining = And3<BasicMoveParser, WhiteSpaceParser, TimeRem
 
 pub type MoveParser = And2<
     Or3<MoveWithTotalTime, MoveWithTimeRemaining, MoveWithInfiniteTime>,
-    Or2<And2<WhiteSpaceParser,WinLengthParser>, NothingParser>,
+    Or2<And2<WhiteSpaceParser, WinLengthParser>, NothingParser>,
 >;
 pub type MoveParserReturnType = (
     Either<
@@ -354,25 +474,28 @@ mod test_move_parser {
         assert_eq!(
             res,
             Ok((
-                (Right(Right((
-                    ((
-                        String::from("move"),
-                        (
-                            String::from(" "),
+                (
+                    Right(Right((
+                        ((
+                            String::from("move"),
                             (
-                                Board {
-                                    rows: vec![
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Played(Player::X), Playable],
-                                        vec![Playable, Playable, Playable]
-                                    ]
-                                },
-                                Player::O
+                                String::from(" "),
+                                (
+                                    Board {
+                                        rows: vec![
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Played(Player::X), Playable],
+                                            vec![Playable, Playable, Playable]
+                                        ]
+                                    },
+                                    Player::O
+                                )
                             )
-                        )
-                    )),
-                    Anything::new("".to_string())
-                ))), Right(Nothing)),
+                        )),
+                        Anything::new("".to_string())
+                    ))),
+                    Right(Nothing)
+                ),
                 String::from(""),
             ))
         );
@@ -386,29 +509,32 @@ mod test_move_parser {
 
         assert_eq!(
             res,
-            Ok(((
-                Left((
-                    ((
-                        String::from("move"),
+            Ok((
+                (
+                    Left((
+                        ((
+                            String::from("move"),
+                            (
+                                " ".to_string(),
+                                (
+                                    Board {
+                                        rows: vec![
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Playable, Playable]
+                                        ]
+                                    },
+                                    Player::X
+                                )
+                            )
+                        )),
                         (
                             " ".to_string(),
-                            (
-                                Board {
-                                    rows: vec![
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Playable, Playable]
-                                    ]
-                                },
-                                Player::X
-                            )
+                            ("time".to_string(), (" ".to_string(), Number(1000)))
                         )
                     )),
-                    (
-                        " ".to_string(),
-                        ("time".to_string(), (" ".to_string(), Number(1000)))
-                    )
-                )), Right(Nothing)),
+                    Right(Nothing)
+                ),
                 "".to_string()
             ))
         );
@@ -422,32 +548,35 @@ mod test_move_parser {
 
         assert_eq!(
             res,
-            Ok(((
-                Right(Left((
-                    ((
-                        String::from("move"),
+            Ok((
+                (
+                    Right(Left((
+                        ((
+                            String::from("move"),
+                            (
+                                " ".to_string(),
+                                (
+                                    Board {
+                                        rows: vec![
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Playable, Playable]
+                                        ]
+                                    },
+                                    Player::X
+                                )
+                            )
+                        )),
                         (
                             " ".to_string(),
                             (
-                                Board {
-                                    rows: vec![
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Playable, Playable]
-                                    ]
-                                },
-                                Player::X
+                                "time-remaining".to_string(),
+                                (" ".to_string(), Number(10000))
                             )
                         )
-                    )),
-                    (
-                        " ".to_string(),
-                        (
-                            "time-remaining".to_string(),
-                            (" ".to_string(), Number(10000))
-                        )
-                    )
-                ))), Right(Nothing)),
+                    ))),
+                    Right(Nothing)
+                ),
                 "".to_string()
             ))
         );
@@ -462,25 +591,31 @@ mod test_move_parser {
         assert_eq!(
             res,
             Ok((
-                (Right(Right((
-                    ((
-                        String::from("move"),
-                        (
-                            String::from(" "),
+                (
+                    Right(Right((
+                        ((
+                            String::from("move"),
                             (
-                                Board {
-                                    rows: vec![
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Playable, Playable],
-                                        vec![Playable, Playable, Playable]
-                                    ]
-                                },
-                                Player::X
+                                String::from(" "),
+                                (
+                                    Board {
+                                        rows: vec![
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Playable, Playable],
+                                            vec![Playable, Playable, Playable]
+                                        ]
+                                    },
+                                    Player::X
+                                )
                             )
-                        )
-                    )),
-                    Anything::new(" win-length 3".to_string())
-                ))), Left((" ".to_string(), ("win-length".to_string(), (" ".to_string(), Number(3)))))),
+                        )),
+                        Anything::new(" win-length 3".to_string())
+                    ))),
+                    Left((
+                        " ".to_string(),
+                        ("win-length".to_string(), (" ".to_string(), Number(3)))
+                    ))
+                ),
                 String::from(""),
             ))
         );

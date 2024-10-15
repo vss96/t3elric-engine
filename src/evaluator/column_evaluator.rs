@@ -5,9 +5,9 @@ use super::Evaluator;
 pub struct ColumnEvaluator;
 
 impl Evaluator for ColumnEvaluator {
-    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> i32 {
+    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> f32 {
         let rows = board_state.board.get_rows();
-        let mut score = 0;
+        let mut score  = 0;
         let mut empty_space = 1;
         for i in (0..x).rev() {
             if rows[i][y] == Cell::Playable {
@@ -40,6 +40,6 @@ impl Evaluator for ColumnEvaluator {
             score = 0;
         }
 
-        score as i32
+        score as f32 / empty_space as f32
     }
 }

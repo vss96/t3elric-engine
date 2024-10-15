@@ -1,4 +1,3 @@
-use std::cmp::max;
 
 use crate::{
     evaluator::{
@@ -14,118 +13,83 @@ pub struct GreedySolver {
     winning_evaluator: Box<dyn Evaluator>,
     losing_evaluator: Box<dyn Evaluator>,
     player_score_evaluator: Box<dyn Evaluator>,
+    player_sum_evaluator: Box<dyn Evaluator>,
 }
 
 impl Default for GreedySolver {
     fn default() -> Self {
-        let diff_evaluators: Vec<Box<dyn Evaluator>> = vec![
-            Box::new(WinningEvaluator::new(Box::new(ReduceEvaluator::new(
-                vec![
-                    Box::new(MapEvaluator::new(
-                        Box::new(OpponentEvaluator::new(Box::new(ColumnEvaluator))),
-                        Box::new(|f| -1 * f),
-                    )),
-                    Box::new(ColumnEvaluator),
-                ],
-                Box::new(|x, y| x + y),
-            )))),
-            Box::new(WinningEvaluator::new(Box::new(ReduceEvaluator::new(
-                vec![
-                    Box::new(MapEvaluator::new(
-                        Box::new(OpponentEvaluator::new(Box::new(RowEvaluator))),
-                        Box::new(|f| -1 * f),
-                    )),
-                    Box::new(RowEvaluator),
-                ],
-                Box::new(|x, y| x + y),
-            )))),
-            Box::new(WinningEvaluator::new(Box::new(ReduceEvaluator::new(
-                vec![
-                    Box::new(MapEvaluator::new(
-                        Box::new(OpponentEvaluator::new(Box::new(DiagonalEvaluator))),
-                        Box::new(|f| -1 * f),
-                    )),
-                    Box::new(DiagonalEvaluator),
-                ],
-                Box::new(|x, y| x + y),
-            )))),
+        let win_evaluators: Vec<Box<dyn Evaluator>> = vec![
+            Box::new(WinningEvaluator::new(Box::new(ColumnEvaluator))),
+            Box::new(WinningEvaluator::new(Box::new(RowEvaluator))),
+            Box::new(WinningEvaluator::new(Box::new(DiagonalEvaluator))),
         ];
 
-        let losing_diff_evaluators: Vec<Box<dyn Evaluator>> = vec![
-            Box::new(WinningEvaluator::new(Box::new(ReduceEvaluator::new(
-                vec![
-                    Box::new(MapEvaluator::new(
-                        Box::new(ColumnEvaluator),
-                        Box::new(|f| -1 * f),
-                    )),
-                    Box::new(OpponentEvaluator::new(Box::new(ColumnEvaluator))),
-                ],
-                Box::new(|x, y| x + y),
+        let losing_evaluators: Vec<Box<dyn Evaluator>> = vec![
+            Box::new(WinningEvaluator::new(Box::new(OpponentEvaluator::new(
+                Box::new(ColumnEvaluator),
             )))),
-            Box::new(WinningEvaluator::new(Box::new(ReduceEvaluator::new(
-                vec![
-                    Box::new(MapEvaluator::new(
-                        Box::new(RowEvaluator),
-                        Box::new(|f| -1 * f),
-                    )),
-                    Box::new(OpponentEvaluator::new(Box::new(RowEvaluator))),
-                ],
-                Box::new(|x, y| x + y),
+            Box::new(WinningEvaluator::new(Box::new(OpponentEvaluator::new(
+                Box::new(RowEvaluator),
             )))),
-            Box::new(WinningEvaluator::new(Box::new(ReduceEvaluator::new(
-                vec![
-                    Box::new(MapEvaluator::new(
-                        Box::new(DiagonalEvaluator),
-                        Box::new(|f| -1 * f),
-                    )),
-                    Box::new(OpponentEvaluator::new(Box::new(DiagonalEvaluator))),
-                ],
-                Box::new(|x, y| x + y),
+            Box::new(WinningEvaluator::new(Box::new(OpponentEvaluator::new(
+                Box::new(DiagonalEvaluator),
             )))),
         ];
 
         let winning_evaluator: Box<dyn Evaluator> = Box::new(ReduceEvaluator::new(
-            diff_evaluators,
-            Box::new(|x, y| x + y),
+            win_evaluators,
+            Box::new(|x, y| f32::max(x, y)),
         ));
         let losing_evaluator: Box<dyn Evaluator> = Box::new(MapEvaluator::new(
             Box::new(ReduceEvaluator::new(
-                losing_diff_evaluators,
-                Box::new(|x, y| x + y),
+                losing_evaluators,
+                Box::new(|x, y| f32::max(x, y)),
             )),
-            Box::new(|f| f * 2),
+            Box::new(|f| f * 1.0),
         ));
 
-        let evaluators: Vec<Box<dyn Evaluator>> = vec![
-            Box::new(ColumnEvaluator),
-            Box::new(RowEvaluator),
-            Box::new(DiagonalEvaluator),
-        ];
-        let player_score_evaluator =
-            Box::new(ReduceEvaluator::new(evaluators, Box::new(|x, y| max(x, y))));
+        let player_score_evaluator = Box::new(ReduceEvaluator::new(
+            vec![
+                Box::new(ColumnEvaluator),
+                Box::new(RowEvaluator),
+                Box::new(DiagonalEvaluator),
+            ],
+            Box::new(|x, y| f32::max(x, y)),
+        ));
+
+        let player_sum_evaluator = Box::new(ReduceEvaluator::new(
+            vec![
+                Box::new(ColumnEvaluator),
+                Box::new(RowEvaluator),
+                Box::new(DiagonalEvaluator),
+            ],
+            Box::new(|x, y| x + y),
+        ));
+
         Self {
             winning_evaluator,
             losing_evaluator,
             player_score_evaluator,
+            player_sum_evaluator,
         }
     }
 }
 
 impl Solver for GreedySolver {
-    fn solve(&self, board_state: &BoardState) -> Option<BestMove> {
+    fn solve(&self, board_state: &BoardState) -> (Option<BestMove>, f32) {
         let rows = &board_state.board.get_rows();
         let (rlen, clen) = (rows.len(), rows[0].len());
 
-        let no_of_moves = rows
-            .into_iter()
-            .flatten()
-            .filter(|c| **c == Cell::Played(board_state.player_to_move.clone()))
-            .count();
+        // let no_of_moves = rows
+        //     .into_iter()
+        //     .flatten()
+        //     .filter(|c| **c == Cell::Played(board_state.player_to_move.clone()))
+        //     .count();
 
-        if rows[rlen / 2][clen / 2] == Cell::Playable && no_of_moves < 1 {
-            return Some(BestMove::new(rlen as u32 / 2, clen as u32 / 2));
-        }
-        let mut best_score = -1;
+        // if rows[rlen / 2][clen / 2] == Cell::Playable && no_of_moves < 1 {
+        //     return (Some(BestMove::new(rlen as u32 / 2, clen as u32 / 2)), 100.0);
+        // }
+        let mut best_score = -1f32;
         let (mut bx, mut by) = (-1, -1);
         for i in 0..rlen {
             for j in 0..clen {
@@ -135,19 +99,27 @@ impl Solver for GreedySolver {
                 }
 
                 let scores = vec![
-                    self.player_score_evaluator
-                        .score(board_state, i, j, &board_state.player_to_move),
+                    self.player_score_evaluator.score(
+                        board_state,
+                        i,
+                        j,
+                        &board_state.player_to_move,
+                    ),
                     self.winning_evaluator
                         .score(board_state, i, j, &board_state.player_to_move),
                     self.losing_evaluator
                         .score(board_state, i, j, &board_state.player_to_move),
+                    self.player_sum_evaluator
+                        .score(board_state, i, j, &board_state.player_to_move),
                 ];
 
-                if scores[0] == (board_state.win_length as i32 - 1) {
-                    return Some(BestMove::new(i as u32, j as u32));
+                // println!("({}, {}) -> {:?}", i, j, scores);
+
+                if scores[0] == (board_state.win_length as f32 - 1f32) {
+                    return (Some(BestMove::new(i as u32, j as u32)), 1000.0);
                 };
 
-                let max_score = scores.iter().fold(0, |acc, x| max(acc, *x));
+                let max_score = scores.iter().fold(0.0, |acc, x| f32::max(acc, *x));
 
                 if max_score > best_score {
                     best_score = max_score;
@@ -157,9 +129,9 @@ impl Solver for GreedySolver {
         }
 
         if (bx, by) == (-1, -1) {
-            None
+            (None, -1.0)
         } else {
-            Some(BestMove::new(bx as u32, by as u32))
+            (Some(BestMove::new(bx as u32, by as u32)), best_score)
         }
     }
 }
@@ -183,9 +155,9 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::X), Played(Player::X)],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
     }
 
@@ -199,9 +171,9 @@ mod test_greedy_solver {
                 vec![Playable, Playable, Played(Player::O)],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
     }
 
@@ -215,9 +187,9 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::X), Played(Player::X)],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
         assert_eq!(best_move, Some(BestMove::new(2, 0)));
     }
 
@@ -231,9 +203,9 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::X), Played(Player::O)],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
         assert_eq!(best_move, Some(BestMove::new(0, 1)));
     }
 
@@ -247,9 +219,9 @@ mod test_greedy_solver {
                 vec![Played(Player::X), Played(Player::O), Played(Player::X)],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
         assert_eq!(best_move, Some(BestMove::new(0, 2)));
     }
 
@@ -263,10 +235,10 @@ mod test_greedy_solver {
                 vec![Playable, Played(Player::O), Playable],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
-        assert_eq!(best_move, Some(BestMove::new(2, 2)));
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
+        assert_eq!(best_move, Some(BestMove::new(1, 0)));
     }
 
     #[test]
@@ -279,9 +251,45 @@ mod test_greedy_solver {
                 vec![Playable, Playable, Playable],
             ]),
             TimeSetting::Infinite,
-            None
+            None,
         );
-        let best_move = GreedySolver::default().solve(&mut board_state);
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
         assert_eq!(best_move, Some(BestMove::new(2, 1)));
+    }
+
+    #[test]
+    fn should_find_winning_move5() {
+        let mut board_state = BoardState::new(
+            Player::O,
+            Board::new(vec![
+                vec![Playable, Playable, Playable, Playable, Played(Player::O)],
+                vec![Playable, Playable, Playable, Played(Player::X), Playable],
+                vec![Playable, Playable, Played(Player::O), Playable, Playable],
+                vec![Playable, Played(Player::X), Playable, Playable, Playable],
+                vec![Played(Player::X), Playable, Playable, Playable, Playable],
+            ]),
+            TimeSetting::Infinite,
+            Some(3),
+        );
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
+        assert_eq!(best_move, Some(BestMove::new(0, 2)));
+    }
+
+    #[test]
+    fn should_find_winning_move6() {
+        let mut board_state = BoardState::new(
+            Player::X,
+            Board::new(vec![
+                vec![Playable, Playable, Playable, Playable, Playable],
+                vec![Playable, Playable, Playable, Playable, Playable],
+                vec![Playable, Playable, Played(Player::O), Playable, Playable],
+                vec![Playable, Played(Player::X), Playable, Playable, Playable],
+                vec![Played(Player::X), Playable, Playable, Playable, Playable],
+            ]),
+            TimeSetting::Infinite,
+            Some(3),
+        );
+        let best_move = GreedySolver::default().solve(&mut board_state).0;
+        assert_eq!(best_move, Some(BestMove::new(3, 0)));
     }
 }

@@ -1,4 +1,3 @@
-use std::cmp::max;
 
 use crate::parser::BoardState;
 
@@ -21,9 +20,9 @@ impl Evaluator for WinningEvaluator {
         x: usize,
         y: usize,
         player: &crate::parser::Player,
-    ) -> i32 {
+    ) -> f32 {
         let s = self.evaluator.score(board_state, x, y, player);
         let winlength = board_state.win_length;
-        winlength as i32 / max(winlength as i32 - s, 1)
+        winlength as f32 / f32::max(winlength as f32 - s, 1.0)
     }
 }

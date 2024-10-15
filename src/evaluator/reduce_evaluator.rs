@@ -4,11 +4,11 @@ use super::Evaluator;
 
 pub struct ReduceEvaluator {
     evaluators: Vec<Box<dyn Evaluator>>,
-    reducer: Box<dyn Fn(i32, i32) -> i32>,
+    reducer: Box<dyn Fn(f32, f32) -> f32>,
 }
 
 impl ReduceEvaluator {
-    pub fn new(evaluators: Vec<Box<dyn Evaluator>>, reducer: Box<dyn Fn(i32, i32) -> i32>) -> Self {
+    pub fn new(evaluators: Vec<Box<dyn Evaluator>>, reducer: Box<dyn Fn(f32, f32) -> f32>) -> Self {
         Self {
             evaluators,
             reducer,
@@ -23,10 +23,10 @@ impl Evaluator for ReduceEvaluator {
         x: usize,
         y: usize,
         player: &crate::parser::Player,
-    ) -> i32 {
+    ) -> f32 {
         self.evaluators
             .iter()
             .map(|f| f.score(board_state, x, y, player))
-            .fold(0, |acc, x| (self.reducer)(acc, x))
+            .fold(0.0, |acc, x| (self.reducer)(acc, x))
     }
 }

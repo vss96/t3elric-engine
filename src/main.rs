@@ -4,12 +4,16 @@ mod evaluator;
 mod executor;
 mod parser;
 mod solver;
+mod scorer;
+use evaluator::GreedyEvaluator;
 use executor::CommandExecutor;
 use parser::Command;
-use solver::GreedySolver;
+use scorer::GreedyScorer;
+use solver::{GreedySolver, LookAheadSolver};
 use std::time::Instant; 
 fn main() -> Result<()> {
-    let my_solver = GreedySolver::default();
+    let my_solver = LookAheadSolver::new(Box::new(GreedyScorer::default()), 1);
+    // let my_solver = GreedySolver::default();
     let executor = CommandExecutor::new(Box::new(my_solver));
     loop {
         let mut buffer = String::new();
@@ -27,6 +31,7 @@ fn main() -> Result<()> {
             }
             Err(msg) => eprintln!("Invalid input: {} || msg: {}", input_string, msg),
         };
+
 
         // println!("Total time: {:?}", start.elapsed());
     }
