@@ -1,4 +1,4 @@
-use crate::{evaluator::{ColumnEvaluator, DiagonalEvaluator, Evaluator, GreedyEvaluator, ReduceEvaluator, RowEvaluator, WinningEvaluator}, parser::Player};
+use crate::{evaluator::{ColumnEvaluator, DiagonalEvaluator, Evaluator, GreedyEvaluator, ReduceEvaluator, RowEvaluator, WinningEvaluator}, parser::{Cell, Player}};
 
 use super::Scorer;
 
@@ -32,18 +32,23 @@ impl Scorer for GreedyScorer {
         let mut cum_score = 0f32;
         for i in 0..rlen {
             for j in 0..clen {
+
+                if rows[i][j] != Cell::Playable {
+                    continue;
+                }
+
                 let x_win_score = self.win_evaluator.score(&board_state, i, j, &Player::X);
                 let o_win_score = self.win_evaluator.score(&board_state, i, j, &Player::O);
 
 
                 if x_win_score == board_state.win_length as f32 {
                     cum_score += 1000f32;
-                    break;
+                    continue;
                 }
 
                 if o_win_score == board_state.win_length as f32 {
                     cum_score -= 1000f32;
-                    break;
+                    continue;
                 }
 
                 cum_score += self.evaluator.score(&board_state, i, j, &Player::X);
