@@ -76,7 +76,7 @@ impl Default for GreedySolver {
 }
 
 impl Solver for GreedySolver {
-    fn solve(&self, board_state: &BoardState) -> (Option<BestMove>, f32) {
+    fn solve(&self, board_state: &mut BoardState) -> (Option<BestMove>, f32) {
         let rows = &board_state.board.get_rows();
         let (rlen, clen) = (rows.len(), rows[0].len());
 
@@ -103,14 +103,14 @@ impl Solver for GreedySolver {
                         board_state,
                         i,
                         j,
-                        &board_state.player_to_move,
+                        board_state.player_to_move,
                     ),
                     self.winning_evaluator
-                        .score(board_state, i, j, &board_state.player_to_move),
+                        .score(board_state, i, j, board_state.player_to_move),
                     self.losing_evaluator
-                        .score(board_state, i, j, &board_state.player_to_move),
+                        .score(board_state, i, j, board_state.player_to_move),
                     self.player_sum_evaluator
-                        .score(board_state, i, j, &board_state.player_to_move),
+                        .score(board_state, i, j, board_state.player_to_move),
                 ];
 
                 // println!("({}, {}) -> {:?}", i, j, scores);

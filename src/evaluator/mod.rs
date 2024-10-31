@@ -1,7 +1,7 @@
 use crate::parser::{BoardState, Player};
 
 pub trait Evaluator {
-    fn score(&self, board: &BoardState, x: usize, y: usize, player: &Player) -> f32;
+    fn score(&self, board: &BoardState, x: usize, y: usize, player: Player) -> f32;
 }
 
 mod column_evaluator;

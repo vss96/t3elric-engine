@@ -8,5 +8,5 @@ pub use greedy_solver::GreedySolver;
 pub use look_ahead_solver::LookAheadSolver;
 
 pub trait Solver {
-    fn solve(&self, board_state: &BoardState) -> (Option<BestMove>, f32);
+    fn solve(&self, board_state: &mut BoardState) -> (Option<BestMove>, f32);
 }

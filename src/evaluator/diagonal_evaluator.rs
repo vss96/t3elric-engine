@@ -6,14 +6,14 @@ use super::Evaluator;
 pub struct DiagonalEvaluator;
 
 impl Evaluator for DiagonalEvaluator {
-    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> f32 {
+    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: Player) -> f32 {
         let win_length = board_state.win_length;
         let rows = board_state.board.get_rows();
         let row_count = rows.len(); // Number of rows (M)
         let col_count = rows[0].len(); // Number of columns (M)
         let mut d1score: i32 = 0;
         let mut d2score: i32 = 0;
-        let player_cell = Cell::Played(player.clone());
+        let player_cell = Cell::Played(player);
 
         // Diagonal 1: slope +1 (top-left to bottom-right), y = x + (y - x)
         let mut row = if x > y { x - y } else { 0 };
@@ -72,8 +72,8 @@ impl Evaluator for DiagonalEvaluator {
         }
 
         f32::max(
-            d1score as f32 / d1_empty_cell as f32,
-            d2score as f32 / d2_empty_cell as f32,
+            d1score as f32 ,
+            d2score as f32,
         )
     }
 }

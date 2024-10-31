@@ -38,7 +38,7 @@ impl Default for GreedyEvaluator {
                 losing_evaluators,
                 Box::new(|x, y| f32::max(x, y)),
             )),
-            Box::new(|f| f * 1.0),
+            Box::new(|f| f * 1.5),
         ));
 
         let player_score_evaluator = Box::new(ReduceEvaluator::new(
@@ -80,7 +80,7 @@ impl Evaluator for GreedyEvaluator {
         board: &crate::parser::BoardState,
         x: usize,
         y: usize,
-        player: &crate::parser::Player,
+        player: crate::parser::Player,
     ) -> f32 {
         self.evaluator.score(board, x, y, player)
     }

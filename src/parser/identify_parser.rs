@@ -20,7 +20,7 @@ impl Identity {
         let mut engine_info = HashMap::new();
         engine_info.insert("name".to_string(), "t3elric-engine".to_string());
         engine_info.insert("author".to_string(), "shettyvikas209@gmail.com".to_string());
-        engine_info.insert("version".to_string(), "2.0.1".to_string());
+        engine_info.insert("version".to_string(), "2.0.2".to_string());
         engine_info.insert(
             "url".to_string(),
             "https://github.com/vss96/t3elric-engine".to_string(),

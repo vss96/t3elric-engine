@@ -19,7 +19,7 @@ impl Evaluator for MapEvaluator {
         board_state: &BoardState,
         x: usize,
         y: usize,
-        player: &crate::parser::Player,
+        player: crate::parser::Player,
     ) -> f32 {
         (self.mapper)(self.evaluator.score(board_state, x, y, player))
     }

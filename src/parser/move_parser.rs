@@ -15,13 +15,6 @@ use super::{
     ParseResult, Parser,
 };
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct BoardState {
-    pub player_to_move: Player,
-    pub board: Board,
-    pub time_setting: TimeSetting,
-    pub win_length: u32,
-}
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BestMove(u32, u32);
@@ -65,6 +58,17 @@ impl Display for BestMove {
     }
 }
 
+
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct BoardState {
+    pub player_to_move: Player,
+    pub board: Board,
+    pub time_setting: TimeSetting,
+    pub win_length: u32,
+    pub winner: Option<Player>,
+}
+
 impl BoardState {
     pub fn new(
         player_to_move: Player,
@@ -78,13 +82,33 @@ impl BoardState {
             board,
             time_setting,
             win_length: win_length.unwrap_or(default_win_length),
+            winner: None
         }
     }
 
     pub fn is_game_over(&self) -> bool {
         self.board
-            .check_win(&self.player_to_move.opponent(), self.win_length)
+            .check_win(self.player_to_move.opponent(), self.win_length)
+            || self.board.check_win(self.player_to_move, self.win_length)
             || self.get_possible_moves().is_empty()
+    }
+
+    pub fn get_winner(&mut self) -> Option<Player> {
+
+        if self.winner.is_some() {
+            return self.winner
+        }
+
+        if self.board.check_win(self.player_to_move.opponent(), self.win_length) {
+            self.winner = Some(self.player_to_move.opponent());
+            return self.winner;
+        } 
+        
+        if self.board.check_win(self.player_to_move, self.win_length) {
+             self.winner = Some(self.player_to_move);
+             return self.winner;
+        }
+        None
     }
 
     pub fn get_possible_moves(&self) -> Vec<BestMove> {
@@ -108,7 +132,135 @@ impl BoardState {
             board: new_board,
             time_setting: self.time_setting.clone(),
             win_length: self.win_length,
+            winner: None
         }
+    }
+}
+
+#[cfg(test)]
+mod board_state_tests {
+    use crate::parser::{Board, BoardState, Cell, Player, TimeSetting};
+
+
+    #[test]
+    fn test_is_game_over() {
+        // Test case 1: Game won by Player X with a horizontal win
+        let board = Board {
+            rows: vec![
+                vec![Cell::Played(Player::X), Cell::Played(Player::X), Cell::Played(Player::X)],
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+            ],
+        };
+
+        let board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert!(board_state.is_game_over(), "Game should be over as Player X has won horizontally.");
+    }
+
+    #[test]
+    fn test_draw_no_winner() {
+        // Board full with no winner (Draw)
+        let board = Board {
+            rows: vec![
+                vec![Cell::Played(Player::X), Cell::Played(Player::O), Cell::Played(Player::X)],
+                vec![Cell::Played(Player::O), Cell::Played(Player::X), Cell::Played(Player::O)],
+                vec![Cell::Played(Player::O), Cell::Played(Player::X), Cell::Played(Player::O)],
+            ],
+        };
+
+        let board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert!(board_state.is_game_over(), "Game should be over due to a full board with no winner.");
+    }
+
+    #[test]
+    fn test_game_ongoing_with_moves_remaining() {
+        // Game ongoing with playable moves and no winner
+        let board = Board {
+            rows: vec![
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+                vec![Cell::Playable, Cell::Played(Player::X), Cell::Playable],
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+            ],
+        };
+
+        let board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert!(!board_state.is_game_over(), "Game should not be over as there are possible moves and no winner.");
+    }
+
+    #[test]
+    fn test_get_winner_player_x_wins() {
+        // Player X wins with a horizontal line
+        let board = Board {
+            rows: vec![
+                vec![Cell::Played(Player::X), Cell::Played(Player::X), Cell::Played(Player::X)],
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+            ],
+        };
+
+        let mut board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert_eq!(board_state.get_winner(), Some(Player::X), "Player X should be the winner.");
+    }
+
+
+    #[test]
+    fn test_get_diagonal_winner_player_x_wins() {
+        // Player X wins with a horizontal line
+        let board = Board {
+            rows: vec![
+                vec![Cell::Played(Player::X), Cell::Played(Player::O), Cell::Played(Player::O)],
+                vec![Cell::Playable, Cell::Played(Player::X), Cell::Playable],
+                vec![Cell::Playable, Cell::Playable, Cell::Played(Player::X)],
+            ],
+        };
+
+        let mut board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert_eq!(board_state.get_winner(), Some(Player::X), "Player X should be the winner.");
+    }
+
+    #[test]
+    fn test_get_winner_player_o_wins() {
+        // Player O wins with a vertical line
+        let board = Board {
+            rows: vec![
+                vec![Cell::Played(Player::O), Cell::Playable, Cell::Playable],
+                vec![Cell::Played(Player::O), Cell::Playable, Cell::Playable],
+                vec![Cell::Played(Player::O), Cell::Playable, Cell::Playable],
+            ],
+        };
+
+        let mut board_state = BoardState::new(Player::O, board, TimeSetting::Infinite, Some(3));
+        assert_eq!(board_state.get_winner(), Some(Player::O), "Player O should be the winner.");
+    }
+
+    #[test]
+    fn test_get_winner_draw_no_winner() {
+        // Full board with no winner (draw)
+        let board = Board {
+            rows: vec![
+                vec![Cell::Played(Player::X), Cell::Played(Player::O), Cell::Played(Player::X)],
+                vec![Cell::Played(Player::O), Cell::Played(Player::X), Cell::Played(Player::O)],
+                vec![Cell::Played(Player::O), Cell::Played(Player::X), Cell::Played(Player::O)],
+            ],
+        };
+
+        let mut board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert_eq!(board_state.get_winner(), None, "There should be no winner in a draw.");
+    }
+
+    #[test]
+    fn test_get_winner_ongoing_game_no_winner() {
+        // Game ongoing with no winner yet
+        let board = Board {
+            rows: vec![
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+                vec![Cell::Playable, Cell::Played(Player::X), Cell::Playable],
+                vec![Cell::Playable, Cell::Playable, Cell::Playable],
+            ],
+        };
+
+        let mut board_state = BoardState::new(Player::X, board, TimeSetting::Infinite, Some(3));
+        assert_eq!(board_state.get_winner(), None, "There should be no winner as the game is ongoing.");
     }
 }
 
@@ -122,17 +274,17 @@ generate_token_parser!(WINL, WinLengthTokenParser);
 
 pub type WinLengthParser = And3<WinLengthTokenParser, WhiteSpaceParser, Number>;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Cell {
     Playable,
     NonPlayable,
     Played(Player),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub enum Player {
-    X,
-    O,
+    X = 1,
+    O = -1,
 }
 
 impl Player {
@@ -189,7 +341,7 @@ impl Board {
         }
     }
 
-    pub fn check_win(&self, player: &Player, win_length: u32) -> bool {
+    pub fn check_win(&self, player: Player, win_length: u32) -> bool {
         let rows = self.get_rows();
         let rlen = rows.len();
         let clen = rows[0].len();

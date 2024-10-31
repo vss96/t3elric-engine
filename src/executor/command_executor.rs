@@ -18,8 +18,8 @@ impl CommandExecutor {
         match command {
             Command::Init(version) => Either::Left(CommandResponse::StepOk(Step::new(version))),
             Command::Identify => Either::Left(CommandResponse::Identity(Identity::new())),
-            Command::Move(board_state) => Either::Left(CommandResponse::Play(
-                self.solver.solve(&board_state).0.unwrap(),
+            Command::Move(mut board_state) => Either::Left(CommandResponse::Play(
+                self.solver.solve(&mut board_state).0.unwrap(),
             )),
             Command::Quit => Either::Right(Quit {}),
         }

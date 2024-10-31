@@ -22,7 +22,7 @@ impl Evaluator for ReduceEvaluator {
         board_state: &BoardState,
         x: usize,
         y: usize,
-        player: &crate::parser::Player,
+        player: crate::parser::Player,
     ) -> f32 {
         self.evaluators
             .iter()

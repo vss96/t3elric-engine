@@ -5,7 +5,6 @@ mod executor;
 mod parser;
 mod solver;
 mod scorer;
-use evaluator::GreedyEvaluator;
 use executor::CommandExecutor;
 use parser::Command;
 use scorer::GreedyScorer;

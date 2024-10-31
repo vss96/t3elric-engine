@@ -19,7 +19,7 @@ impl Evaluator for WinningEvaluator {
         board_state: &BoardState,
         x: usize,
         y: usize,
-        player: &crate::parser::Player,
+        player: crate::parser::Player,
     ) -> f32 {
         let s = self.evaluator.score(board_state, x, y, player);
         let winlength = board_state.win_length;

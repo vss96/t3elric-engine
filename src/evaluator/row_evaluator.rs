@@ -6,7 +6,7 @@ use super::Evaluator;
 pub struct RowEvaluator;
 
 impl Evaluator for RowEvaluator {
-    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: &Player) -> f32 {
+    fn score(&self, board_state: &BoardState, x: usize, y: usize, player: Player) -> f32 {
         let row = board_state.board.get_rows()[x as usize].clone();
 
         let mut score: i32= 0;
@@ -43,6 +43,6 @@ impl Evaluator for RowEvaluator {
             score = 0;
         }
 
-        score as f32/ empty_space as f32
+        score as f32
     }
 }
